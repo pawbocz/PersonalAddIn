@@ -1,6 +1,6 @@
 Param(
-    [string]$xlam = (Join-Path $PSScriptRoot '..\bin\PersonalAddIn.xlam'),
-    [string]$out  = (Join-Path $PSScriptRoot '..\src')
+    $xlam = (Join-Path $PSScriptRoot '..\bin\PersonalAddIn.xlam'),
+    $src  = (Join-Path $PSScriptRoot '..\src')
 )
 
 $excel = New-Object -ComObject Excel.Application
