@@ -1,11 +1,11 @@
 Param(
-    [string]$xlam = "..\bin\PersonalAddIn.xlam",
-    [string]$src  = "..\src"
+    [string]$xlam = (Join-Path $PSScriptRoot '..\bin\PersonalAddIn.xlam'),
+    [string]$out  = (Join-Path $PSScriptRoot '..\src')
 )
 
 $excel = New-Object -ComObject Excel.Application
 $excel.Visible = $false
-$wb = $excel.Workbooks.Open((Resolve-Path $xlam))
+$excel.DisplayAlerts = $false
 
 # wyczyść projekt
 foreach ($comp in @($wb.VBProject.VBComponents)) {
