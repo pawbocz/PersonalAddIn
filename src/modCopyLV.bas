@@ -28,7 +28,7 @@ Sub MainCopy()
     
     Dim pathTgt As Variant
     pathTgt = Application.GetOpenFilename( _
-              "Pliki Excel (*.xls*;*.xlsm), *.xls*;*.xlsm")
+              "Pliki Excel (*.xls*;*.xlsm;*.xltx), *.xls*;*.xlsm;*.xltx")
     If pathTgt = False Then Exit Sub
     
     Set gTargetWB = Workbooks.Open(pathTgt)

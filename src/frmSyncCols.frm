@@ -1,0 +1,81 @@
+VERSION 5.00
+Begin {C62A69F0-16DC-11CE-9E98-00AA00574A4F} frmSyncCols 
+   Caption         =   "UserForm1"
+   ClientHeight    =   4560
+   ClientLeft      =   120
+   ClientTop       =   465
+   ClientWidth     =   7815
+   OleObjectBlob   =   "frmSyncCols.frx":0000
+   StartUpPosition =   1  'CenterOwner
+End
+Attribute VB_Name = "frmSyncCols"
+Attribute VB_GlobalNameSpace = False
+Attribute VB_Creatable = False
+Attribute VB_PredeclaredId = True
+Attribute VB_Exposed = False
+'===========================  frmSyncCols  =========================
+Option Explicit
+
+'--  zwracane do makra  --------------------------------------------
+Public FormOK As Boolean
+Private mLVCena  As Long, mLVWart  As Long
+Private mSRCCena As Long, mSRCWart As Long
+
+Public Property Get LV_Cena() As Long:   LV_Cena = mLVCena:   End Property
+Public Property Get LV_Wart() As Long:   LV_Wart = mLVWart:   End Property
+Public Property Get SRC_Cena() As Long:  SRC_Cena = mSRCCena: End Property
+Public Property Get SRC_Wart() As Long:  SRC_Wart = mSRCWart: End Property
+'-------------------------------------------------------------------
+
+'============  P R I V A T E   R O U T I N E S  ====================
+
+'-- zamienia "A" › 1,  "Z" › 26,  "AA" › 27,  itd.
+Private Function ColIndex(txt As String) As Long
+    Dim s As String: s = UCase$(Trim$(txt))
+    If s = "" Then ColIndex = 0: Exit Function
+    
+    'jeœli liczba: zwróæ j¹ wprost
+    If IsNumeric(s) Then
+        ColIndex = CLng(s)
+        Exit Function
+    End If
+    
+    'jeœli litery: policz 26-kowy system
+    Dim i As Long, n As Long
+    For i = 1 To Len(s)
+        Dim ch As Integer: ch = Asc(Mid$(s, i, 1))
+        If ch < 65 Or ch > 90 Then     'nie A-Z
+            ColIndex = 0: Exit Function
+        End If
+        n = n * 26 + (ch - 64)
+    Next i
+    ColIndex = n
+End Function
+
+'============  E V E N T S  =======================================
+
+Private Sub cmdOK_Click()
+    Dim ok As Boolean
+    mLVCena = ColIndex(Me.txtLV_Cena.Text)
+    mLVWart = ColIndex(Me.txtLV_Wart.Text)
+    mSRCCena = ColIndex(Me.txtSRC_Cena.Text)
+    mSRCWart = ColIndex(Me.txtSRC_Wart.Text)
+    
+    ok = (mLVCena > 0 And mLVWart > 0 And _
+          mSRCCena > 0 And mSRCWart > 0)
+    
+    If ok Then
+        FormOK = True
+        Me.Hide
+    Else
+        MsgBox "Podaj poprawne kolumny (litery lub numery).", vbExclamation
+    End If
+End Sub
+
+Private Sub cmdCancel_Click()
+    FormOK = False
+    Me.Hide
+End Sub
+'==================================================================
+
+
