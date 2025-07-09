@@ -1,0 +1,11 @@
+﻿# traktuj moduły VBA jak pliki tekstowe
+*.bas  text
+*.cls  text
+*.frm  text
+
+# plik zasobów formularza - binarny
+*.frx  binary
+
+# dodatki i skoroszyty - binaria
+*.xlam binary
+*.xlsm binary

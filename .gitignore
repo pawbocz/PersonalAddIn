@@ -1,0 +1,14 @@
+﻿# -- Office / VBA ---------------------------------
+~$*.xls*          
+*.log
+*.tmp
+*.bak
+
+# -- build artifacts ------------------------------
+bin/
+*.xlam            
+*.xlsm
+
+# -- IDE / system --------------------------------
+.vscode/
+Thumbs.db
