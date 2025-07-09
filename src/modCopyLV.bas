@@ -1,102 +1,112 @@
 Attribute VB_Name = "modCopyLV"
-'========= modCopyLV ===========================================
+'========  modCopyLV  ==========================================
 Option Explicit
 
-'--- kolumna ID jest nadal sztywno w kolumnie A -----------------
-Const COL_HID_ID As Long = 1          'A – ukryte ID
+'--- kolumna ID jest zawsze ukryta w kolumnie A -----------------
+Const COL_HID_ID As Long = 1          'A
 
-'--- domyœlne kolumny / pierwszy wiersz (gdy user anuluje) -------
+'--- domyœlne mapowanie kolumn LV (po dodaniu ID) ---------------
 Const DEF_LP_COL     As Long = 2      'B
 Const DEF_OPIS_COL   As Long = 3      'C
-Const DEF_PRZEM_COL  As Long = 4      'D
-Const DEF_JEDN_COL   As Long = 6      'F
-Const DEF_START_ROW  As Long = 8
+Const DEF_PRZEM_COL  As Long = 4      'D      ‹–– PRZEDMIAR
+Const DEF_JEDN_COL   As Long = 6      'F      ‹–– JEDN.przedm.
+Const DEF_START_ROW  As Long = 8      'pierwszy wiersz danych w LV
 
 '--- GLOBALNE ---------------------------------------------------
-Public gSourceWB   As Workbook
-Public gTargetWB   As Workbook
-Public gTemplateLV As Worksheet      'pierwszy arkusz zaczynaj¹cy siê od "LV"
+Public gSourceWB   As Workbook        'plik inwestorski
+Public gTargetWB   As Workbook        'plik LV
+Public gTemplateLV As Worksheet       'pierwszy arkusz „LV…” lub LV_SZABLON
+'===============================================================
+
 
 '============================  M A I N  =========================
 Sub MainCopy()
 
-    Dim wbSrc As Workbook, wbTgt As Workbook
+    '––– 0. wybór pliku docelowego LV –––––––––––––––––––––––––––
+    Set gSourceWB = ActiveWorkbook
+    If gSourceWB Is Nothing Then Exit Sub
+    
     Dim pathTgt As Variant
-    
-    If ActiveWorkbook Is Nothing Then Exit Sub
-    Set wbSrc = ActiveWorkbook:  Set gSourceWB = wbSrc
-    
-    pathTgt = Application.GetOpenFilename("Pliki Excel (*.xls*;*.xlsm), *.xls*;*.xlsm")
+    pathTgt = Application.GetOpenFilename( _
+              "Pliki Excel (*.xls*;*.xlsm), *.xls*;*.xlsm")
     If pathTgt = False Then Exit Sub
     
-    Set wbTgt = Workbooks.Open(pathTgt)
-    Set gTargetWB = wbTgt
-    
-    Set gTemplateLV = GetTemplateLV(wbTgt)
+    Set gTargetWB = Workbooks.Open(pathTgt)
+    Set gTemplateLV = GetTemplateLV(gTargetWB)
     If gTemplateLV Is Nothing Then
         MsgBox "W pliku docelowym brak arkusza, którego nazwa zaczyna siê od 'LV'.", _
                vbCritical
-        wbTgt.Close False
+        gTargetWB.Close False
         Exit Sub
     End If
     
-    '–––––––– 1. dopasowanie arkuszy  ––––––––––––––––––––––––––––
+    '––– 1. formularz mapowania i (opc.) kolumn LV ––––––––––––––
     Load frmSheetMap
     frmSheetMap.Show
     
-    If Not frmSheetMap.FormOK Then    'anulowano
-        wbTgt.Close False
+    If Not frmSheetMap.FormOK Then            'anulowano formularz
+        gTargetWB.Close False
         Exit Sub
     End If
     
     Dim userHdrRow As Long: userHdrRow = frmSheetMap.hdrRow
     
-    '–––––––– 2. dodatkowe ustawienia kolumn LV ––––––––––––––––––
-    Dim mapLp As Long, mapOpis As Long, mapJedn As Long, mapPrzedm As Long
-    Dim mapStart As Long
+    '------ mapowanie kolumn docelowych LV -----------------------
+    Dim mapLp As Long, mapOpis As Long, mapJedn As Long
+    Dim mapPrzedm As Long, mapStart As Long
     
-    mapLp = frmSheetMap.colLp
-    mapOpis = frmSheetMap.colOpis
-    mapJedn = frmSheetMap.colJedn
-    mapPrzedm = frmSheetMap.colPrzedm
-    mapStart = frmSheetMap.startRow
+    If frmSheetMap.UseCustomCols Then
+        mapLp = Val(frmSheetMap.txtLp.Text)
+        mapOpis = Val(frmSheetMap.txtOpis.Text)
+        mapJedn = Val(frmSheetMap.txtJedn.Text)
+        mapPrzedm = Val(frmSheetMap.txtPrzedm.Text)
+        mapStart = Val(frmSheetMap.txtStart.Text)
+    Else
+        mapLp = DEF_LP_COL
+        mapOpis = DEF_OPIS_COL
+        mapJedn = DEF_JEDN_COL
+        mapPrzedm = DEF_PRZEM_COL
+        mapStart = DEF_START_ROW
+    End If
     
-    'gdy pole anulowane / puste – wracamy do domyœlnych
+    'gdy któregoœ pola brak / zero – wska¿ domyœlne
     If mapLp = 0 Then mapLp = DEF_LP_COL
     If mapOpis = 0 Then mapOpis = DEF_OPIS_COL
     If mapJedn = 0 Then mapJedn = DEF_JEDN_COL
     If mapPrzedm = 0 Then mapPrzedm = DEF_PRZEM_COL
     If mapStart = 0 Then mapStart = DEF_START_ROW
     
-    '–––– zapisz listê par do arkusza „Ustawienia” –––––––––––––––
-    SavePairsToSettings frmSheetMap.pairs, wbTgt
+    '––– 2. zapis par arkuszy do „Ustawienia” –––––––––––––––––––
+    SavePairsToSettings frmSheetMap.pairs, gTargetWB
     
-    '–––– 3. PRE-kopiowanie brakuj¹cych arkuszy LV (z szablonu) ––
+    '––– 3. PRE-kopiowanie brakuj¹cych LV z szablonu ––––––––––––
     Dim pr As Variant
     For Each pr In frmSheetMap.pairs
         If UCase$(pr(1)) <> "SUMA" Then
-            If Not SheetExists(wbTgt, pr(1)) Then
-                gTemplateLV.Copy After:=wbTgt.Sheets(wbTgt.Sheets.Count)
-                wbTgt.Sheets(wbTgt.Sheets.Count).Name = pr(1)
+            If Not SheetExists(gTargetWB, pr(1)) Then
+                gTemplateLV.Copy After:=gTargetWB.Sheets(gTargetWB.Sheets.Count)
+                gTargetWB.Sheets(gTargetWB.Sheets.Count).Name = pr(1)
             End If
         End If
     Next pr
     
-    '–––– 4. w³aœciwe kopiowanie danych ––––––––––––––––––––––––––
+    '––– 4. w³aœciwe kopiowanie danych ––––––––––––––––––––––––––
     Application.ScreenUpdating = False
     
     Dim wsSrc As Worksheet
-    For Each pr In frmSheetMap.pairs           'Pair = Array(src, tgt)
-        Set wsSrc = wbSrc.Sheets(pr(0))
-        CopyOnePair wsSrc, wbTgt, CStr(pr(1)), userHdrRow, _
-            mapLp, mapOpis, mapJedn, mapPrzedm, mapStart
+    For Each pr In frmSheetMap.pairs            'pr = Array(srcName, tgtName)
+        Set wsSrc = gSourceWB.Sheets(pr(0))
+        CopyOnePair wsSrc, gTargetWB, CStr(pr(1)), userHdrRow, _
+                     mapLp, mapOpis, mapJedn, mapPrzedm, mapStart
     Next pr
     
     Application.ScreenUpdating = True
     
-    wbTgt.Activate
+    gTargetWB.Activate
     MsgBox "Kopiowanie zakoñczone pomyœlnie.", vbInformation
 End Sub
+'===============================================================
+
 '================================================================
 
 '================================================================

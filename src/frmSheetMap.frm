@@ -1,6 +1,6 @@
 VERSION 5.00
 Begin {C62A69F0-16DC-11CE-9E98-00AA00574A4F} frmSheetMap 
-   Caption         =   "UserForm1"
+   Caption         =   "UserForm jakiœ tam 1"
    ClientHeight    =   6540
    ClientLeft      =   120
    ClientTop       =   465
@@ -35,6 +35,10 @@ Private mStartRow  As Long
 'zak³adka 1 – wiersz nag³ówków
 Public Property Get hdrRow() As Long
     hdrRow = Val(Me.txtHdrRow.Value)          '0, gdy pole puste
+End Property
+
+Public Property Get UseCustomCols() As Boolean
+    UseCustomCols = Me.chkCustom.Value
 End Property
 
 'zak³adka 2 – kolumny LV + pierwszy wiersz danych
@@ -75,6 +79,17 @@ End Sub
 '==================================================================
 '  P A R O W A N I E   A R K U S Z Y
 '==================================================================
+
+Private Sub chkCustom_Click()
+    Dim enab As Boolean: enab = Me.chkCustom.Value
+    
+    Me.txtLp.Enabled = enab
+    Me.txtOpis.Enabled = enab
+    Me.txtJedn.Enabled = enab
+    Me.txtPrzedm.Enabled = enab
+    Me.txtStart.Enabled = enab
+End Sub
+
 Private Sub btnAdd_Click()
     If lstSrc.ListIndex = -1 Or lstTgt.ListIndex = -1 Then Exit Sub
 
