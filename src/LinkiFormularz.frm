@@ -13,9 +13,12 @@ Attribute VB_GlobalNameSpace = False
 Attribute VB_Creatable = False
 Attribute VB_PredeclaredId = True
 Attribute VB_Exposed = False
-
-
-
+Private Sub UserForm_Initialize()
+    On Error Resume Next                       'dla starszych wersji
+    If Application.PixelsPerInch <> 96 Then _
+        Me.Zoom = 100 * Application.PixelsPerInch / 96
+    On Error GoTo 0
+End Sub
 
 Private Sub btnDodaj_Click()
     Dim wpis As String

@@ -22,6 +22,13 @@ Public JednCol As String
 Public PrzedmCol As String
 Public FormOK As Boolean
 
+Private Sub UserForm_Initialize()
+    On Error Resume Next
+    If Application.PixelsPerInch <> 96 Then _
+        Me.Zoom = 100 * Application.PixelsPerInch / 96
+    On Error GoTo 0
+End Sub
+
 Private Sub btnOK_Click()
     idCol = UCase(Trim(txtID.Text))
     OpisCol = UCase(Trim(txtOpis.Text))

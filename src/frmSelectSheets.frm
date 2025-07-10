@@ -28,6 +28,8 @@ Public Property Get SelectedSheets() As Collection
     Set SelectedSheets = pSelected
 End Property
 
+
+
 '=== METODA INIT  (wo³ana z modu³u) =============================
 '  Przeka¿ kolekcjê arkuszy (np. ActiveWorkbook.Worksheets)
 Public Sub Init(wsCol As Sheets)
@@ -73,7 +75,10 @@ End Sub
 
 '=== ZA£ADOWANIE FORMA (opc.) ==================================
 Private Sub UserForm_Initialize()
+    On Error Resume Next
+    If Application.PixelsPerInch <> 96 Then _
+        Me.Zoom = 100 * Application.PixelsPerInch / 96
+    On Error GoTo 0
+    
     pFormOK = False
 End Sub
-
-

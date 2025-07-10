@@ -20,6 +20,14 @@ Public hdrRow As Long, colLp As Long, colOpis As Long
 Public colJedn As Long, colPrzedm As Long, FirstData As Long
 
 
+Private Sub UserForm_Initialize()
+    On Error Resume Next
+    If Application.PixelsPerInch <> 96 Then _
+        Me.Zoom = 100 * Application.PixelsPerInch / 96
+    On Error GoTo 0
+
+End Sub
+
 Private Sub cmdOK_Click()
     On Error GoTo Bad
     hdrRow = CLng(txtHdrRow.Value)

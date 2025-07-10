@@ -54,6 +54,13 @@ Public Property Get startRow() As Long:  startRow = mStartRow:   End Property
 '==================================================================
 Private Sub UserForm_Initialize()
 
+    '––––  AUTOSKALA DPI  ––––––––––––––––––––––––––––––––––––––
+    On Error Resume Next                      'Excel ?2016 nie ma PixelsPerInch
+    If Application.PixelsPerInch <> 96 Then _
+        Me.Zoom = 100 * Application.PixelsPerInch / 96
+    On Error GoTo 0
+    '––––  KONIEC AUTOSKALI  –––––––––––––––––––––––––––––––––––
+
     Dim wbSrc As Workbook: Set wbSrc = gSourceWB
     Dim wbTgt As Workbook: Set wbTgt = gTargetWB
 
@@ -66,11 +73,11 @@ Private Sub UserForm_Initialize()
     Next sh
 
     '--- domyœlne kolumny LV (standard) --------------------------
-    txtLp.Value = "2"       'B
-    txtOpis.Value = "3"     'C
-    txtJedn.Value = "4"     'D
-    txtPrzedm.Value = "5"   'E
-    txtStart.Value = "8"    'pierwszy wiersz danych
+    txtLp.Value = "2"         'B
+    txtOpis.Value = "3"       'C
+    txtJedn.Value = "4"       'D
+    txtPrzedm.Value = "5"     'E
+    txtStart.Value = "8"      'pierwszy wiersz danych
 
     Set pairs = New Collection
     FormOK = False

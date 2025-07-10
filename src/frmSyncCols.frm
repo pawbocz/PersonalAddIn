@@ -29,6 +29,14 @@ Public Property Get SRC_Wart() As Long:  SRC_Wart = mSRCWart: End Property
 
 '============  P R I V A T E   R O U T I N E S  ====================
 
+Private Sub UserForm_Initialize()
+    On Error Resume Next
+    If Application.PixelsPerInch <> 96 Then _
+        Me.Zoom = 100 * Application.PixelsPerInch / 96
+    On Error GoTo 0
+    '… ewentualna reszta kodu …
+End Sub
+
 '-- zamienia "A" › 1,  "Z" › 26,  "AA" › 27,  itd.
 Private Function ColIndex(txt As String) As Long
     Dim s As String: s = UCase$(Trim$(txt))
