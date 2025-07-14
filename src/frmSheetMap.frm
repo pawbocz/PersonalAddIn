@@ -49,6 +49,10 @@ Public Property Get colPrzedm() As Long: colPrzedm = mColPrzedm: End Property
 Public Property Get startRow() As Long:  startRow = mStartRow:   End Property
 '------------------------------------------------------------------
 
+Private Sub Label14_Click()
+
+End Sub
+
 Private Sub Label6_Click()
 
 End Sub
