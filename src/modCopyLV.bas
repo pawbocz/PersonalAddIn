@@ -22,16 +22,17 @@ Public gTemplateLV As Worksheet       'pierwszy arkusz „LV…” lub LV_SZABLON
 '============================  M A I N  =========================
 Sub MainCopy()
 
-    '––– 0. wybór pliku docelowego LV –––––––––––––––––––––––––––
+    '–– 0. wybór pliku LV docelowego ––––––––––––––––––––––––––
     Set gSourceWB = ActiveWorkbook
     If gSourceWB Is Nothing Then Exit Sub
     
     Dim pathTgt As Variant
-    pathTgt = Application.GetOpenFilename( _
-              "Pliki Excel (*.xls*;*.xlsm;*.xltx), *.xls*;*.xlsm;*.xltx")
-    If pathTgt = False Then Exit Sub
+    pathTgt = Application.GetOpenFilename("Pliki Excel (*.xls*;*.xlsm;*.xltx),*.xls*;*.xlsm;*.xltx")
+    If pathTgt = False Then Exit Sub          'u¿ytkownik Anuluj
     
-    Set gTargetWB = Workbooks.Open(pathTgt)
+    '¡  WA¯NE: rzutuj na String, potem u¿yj Set
+    Set gTargetWB = GetOrOpenWorkbook(CStr(pathTgt))
+    
     Set gTemplateLV = GetTemplateLV(gTargetWB)
     If gTemplateLV Is Nothing Then
         MsgBox "W pliku docelowym brak arkusza, którego nazwa zaczyna siê od 'LV'.", _
@@ -333,4 +334,16 @@ Private Sub EnsureHiddenIDColumn(ws As Worksheet)
         End With
     End If
 End Sub
+
+'========  Helper: GetOrOpenWorkbook  =========================
+Public Function GetOrOpenWorkbook(ByVal fullPath As String) As Workbook
+    Dim wb As Workbook
+    For Each wb In Application.Workbooks
+        If StrComp(wb.FullName, fullPath, vbTextCompare) = 0 Then
+            Set GetOrOpenWorkbook = wb          'ju¿ otwarty
+            Exit Function
+        End If
+    Next wb
+    Set GetOrOpenWorkbook = Workbooks.Open(fullPath)   'otwieramy nowy
+End Function
 
