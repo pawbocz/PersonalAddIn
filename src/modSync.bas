@@ -13,14 +13,11 @@ Sub SyncLVtoSource()
 
     '–––– 1. wska¿ oryginalny plik Ÿród³owy –––––––––––––––––––––
     MsgBox "Wska¿ oryginalny plik Ÿród³owy.", vbInformation
-    
     Dim pathSrc As Variant
-    pathSrc = Application.GetOpenFilename("Pliki Excel (*.xls*;*.xlsm;*.xltx),*.xls*;*.xlsm;*.xltx")
-    If pathSrc = False Then Exit Sub      'u¿ytkownik Anuluj
-    
-    '¡  zamiast Workbooks.Open:
-    Dim wbSrc As Workbook
-    Set wbSrc = GetOrOpenWorkbook(CStr(pathSrc))   ' <-- tu u¿ywamy helpera
+    pathSrc = Application.GetOpenFilename("Pliki Excel (*.xls*;*.xlsm),*.xls*;*.xlsm")
+    If pathSrc = False Then Exit Sub
+
+    Dim wbSrc As Workbook:  Set wbSrc = Workbooks.Open(pathSrc)
 
     '–––– 2. arkusz ”Ustawienia” w pliku LV ––––––––––––––––––––
     Dim shSet As Worksheet
@@ -127,15 +124,4 @@ ContinuePair:
 End Sub
 '================================================================
 
-'========  Helper: GetOrOpenWorkbook  =========================
-Public Function GetOrOpenWorkbook(ByVal fullPath As String) As Workbook
-    Dim wb As Workbook
-    For Each wb In Application.Workbooks
-        If StrComp(wb.FullName, fullPath, vbTextCompare) = 0 Then
-            Set GetOrOpenWorkbook = wb          'ju¿ otwarty
-            Exit Function
-        End If
-    Next wb
-    Set GetOrOpenWorkbook = Workbooks.Open(fullPath)   'otwieramy nowy
-End Function
 

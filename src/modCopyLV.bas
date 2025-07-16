@@ -22,17 +22,16 @@ Public gTemplateLV As Worksheet       'pierwszy arkusz „LV…” lub LV_SZABLON
 '============================  M A I N  =========================
 Sub MainCopy()
 
-    '–– 0. wybór pliku LV docelowego ––––––––––––––––––––––––––
+    '––– 0. wybór pliku docelowego LV –––––––––––––––––––––––––––
     Set gSourceWB = ActiveWorkbook
     If gSourceWB Is Nothing Then Exit Sub
     
     Dim pathTgt As Variant
-    pathTgt = Application.GetOpenFilename("Pliki Excel (*.xls*;*.xlsm;*.xltx),*.xls*;*.xlsm;*.xltx")
-    If pathTgt = False Then Exit Sub          'u¿ytkownik Anuluj
+    pathTgt = Application.GetOpenFilename( _
+              "Pliki Excel (*.xls*;*.xlsm;*.xltx), *.xls*;*.xlsm;*.xltx")
+    If pathTgt = False Then Exit Sub
     
-    '¡  WA¯NE: rzutuj na String, potem u¿yj Set
-    Set gTargetWB = GetOrOpenWorkbook(CStr(pathTgt))
-    
+    Set gTargetWB = Workbooks.Open(pathTgt)
     Set gTemplateLV = GetTemplateLV(gTargetWB)
     If gTemplateLV Is Nothing Then
         MsgBox "W pliku docelowym brak arkusza, którego nazwa zaczyna siê od 'LV'.", _
@@ -57,11 +56,11 @@ Sub MainCopy()
     Dim mapPrzedm As Long, mapStart As Long
     
     If frmSheetMap.UseCustomCols Then
-        mapLp = Val(frmSheetMap.txtLp.Text)
-        mapOpis = Val(frmSheetMap.txtOpis.Text)
-        mapJedn = Val(frmSheetMap.txtJedn.Text)
-        mapPrzedm = Val(frmSheetMap.txtPrzedm.Text)
-        mapStart = Val(frmSheetMap.txtStart.Text)
+        mapLp = val(frmSheetMap.txtLp.Text)
+        mapOpis = val(frmSheetMap.txtOpis.Text)
+        mapJedn = val(frmSheetMap.txtJedn.Text)
+        mapPrzedm = val(frmSheetMap.txtPrzedm.Text)
+        mapStart = val(frmSheetMap.txtStart.Text)
     Else
         mapLp = DEF_LP_COL
         mapOpis = DEF_OPIS_COL
@@ -334,16 +333,4 @@ Private Sub EnsureHiddenIDColumn(ws As Worksheet)
         End With
     End If
 End Sub
-
-'========  Helper: GetOrOpenWorkbook  =========================
-Public Function GetOrOpenWorkbook(ByVal fullPath As String) As Workbook
-    Dim wb As Workbook
-    For Each wb In Application.Workbooks
-        If StrComp(wb.FullName, fullPath, vbTextCompare) = 0 Then
-            Set GetOrOpenWorkbook = wb          'ju¿ otwarty
-            Exit Function
-        End If
-    Next wb
-    Set GetOrOpenWorkbook = Workbooks.Open(fullPath)   'otwieramy nowy
-End Function
 

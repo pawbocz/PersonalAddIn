@@ -34,7 +34,7 @@ Private mStartRow  As Long
 '––––––––––––––––  P R O P E R T Y   G E T  –––––––––––––––––––––––
 'zak³adka 1 – wiersz nag³ówków
 Public Property Get hdrRow() As Long
-    hdrRow = Val(Me.txtHdrRow.Value)          '0, gdy pole puste
+    hdrRow = val(Me.txtHdrRow.Value)          '0, gdy pole puste
 End Property
 
 Public Property Get UseCustomCols() As Boolean
