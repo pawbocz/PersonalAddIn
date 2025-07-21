@@ -153,7 +153,7 @@ Private Sub btnStart_Click()
     mColPrzedm = CLng(txtPrzedm.Value)
     mStartRow = CLng(txtStart.Value)
 
-    If Application.Min(mColLp, mColOpis, mColJedn, mColPrzedm, mStartRow) < 1 _
+    If Application.min(mColLp, mColOpis, mColJedn, mColPrzedm, mStartRow) < 1 _
        Or Application.Max(mColLp, mColOpis, mColJedn, mColPrzedm) > 16384 Then
         Err.Raise 1
     End If

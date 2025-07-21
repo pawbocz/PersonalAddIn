@@ -80,7 +80,7 @@ Dim firstCol As Long, lastCol As Long
 Dim pasteRange As Range
 
 ' minimalna i maksymalna kolumna skopiowanego zakresu
-firstCol = WorksheetFunction.Min(idColTgt, opisColTgt, jednColTgt, przedmColTgt)
+firstCol = WorksheetFunction.min(idColTgt, opisColTgt, jednColTgt, przedmColTgt)
 lastCol = WorksheetFunction.Max(idColTgt, opisColTgt, jednColTgt, przedmColTgt)
 
 ' zakres od wiersza 8 do ostatniego wklejonego (writeRow-1)
