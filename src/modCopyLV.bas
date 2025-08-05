@@ -108,12 +108,7 @@ End Sub
 '===============================================================
 
 '================================================================
-
-'================================================================
 '  C O P Y  O N E   P A I R
-'  Kopiuje dane z arkusza Ÿród³owego (wsSrc) do arkusza LV w
-'  skoroszycie docelowym; kolumny i pierwszy wiersz przekazywane
-'  jako parametry.
 '================================================================
 Private Sub CopyOnePair( _
         wsSrc As Worksheet, _
@@ -129,60 +124,63 @@ Private Sub CopyOnePair( _
     '0) ignoruj arkusz „SUMA”
     If UCase$(tgtName) = "SUMA" Then Exit Sub
 
-    '----------------------------------------------------------------
-    '1.  Arkusz docelowy (kopiuj wzorzec LV, jeœli jeszcze nie ma)
-    '----------------------------------------------------------------
-    Dim wsTgt As Worksheet
+
+    '¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦
+    '1.  Arkusz docelowy (kopiuj wzorzec LV, jeœli nie istnieje)
+    '¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦
+    Dim wsTgt As Worksheet, newSheet As Boolean
     On Error Resume Next
-    Set wsTgt = wbTgt.Sheets(tgtName)
+    Set wsTgt = wbTgt.Worksheets(tgtName)
     On Error GoTo 0
-    
-    If wsTgt Is Nothing Then
+
+    If wsTgt Is Nothing Then               '–– tworzymy z szablonu ––
         gTemplateLV.Copy After:=wbTgt.Sheets(wbTgt.Sheets.Count)
         Set wsTgt = wbTgt.Sheets(wbTgt.Sheets.Count)
         On Error Resume Next: wsTgt.Name = tgtName: On Error GoTo 0
+        newSheet = True                    '‹ flaga: to œwie¿y arkusz
     End If
-    
-    '– upewnij siê, ¿e w LV istnieje ukryta kolumna A = ID
-    EnsureHiddenIDColumn wsTgt
 
-    '----------------------------------------------------------------
+    'Jeœli to NIE jest œwie¿o skopiowany arkusz, upewnij siê, ¿e ma
+    'ukryt¹ kolumnê A=ID.  Szablon ma j¹ ju¿ w sobie, wiêc pomijamy.
+    If Not newSheet Then EnsureHiddenIDColumn wsTgt
+
+
+    '¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦
     '2.  Ustal wiersz nag³ówków i pe³ny zakres tabeli w Ÿródle
-    '----------------------------------------------------------------
+    '¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦
     Dim headerRow As Long, tbl As Range
-    
     If userHdrRow > 0 Then
         headerRow = userHdrRow
         Dim lastCol As Long, lastRow As Long
         lastCol = wsSrc.Cells(headerRow, wsSrc.Columns.Count).End(xlToLeft).Column
         lastRow = wsSrc.Cells(wsSrc.Rows.Count, 1).End(xlUp).Row
-        Set tbl = wsSrc.Range(wsSrc.Cells(headerRow, 1), _
-                              wsSrc.Cells(lastRow, lastCol))
+        Set tbl = wsSrc.Range(wsSrc.Cells(headerRow, 1), wsSrc.Cells(lastRow, lastCol))
     Else
         Set tbl = Selection.CurrentRegion
         headerRow = tbl.Row
     End If
 
-    '----------------------------------------------------------------
+
+    '¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦
     '3.  ZnajdŸ bazowe kolumny w Ÿródle
-    '----------------------------------------------------------------
+    '¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦
     Dim idColSrc As Long, opisColSrc As Long, jednColSrc As Long, przedmColSrc As Long
-    
     idColSrc = ZnajdzKolumneWRegion(tbl, "ID")
     opisColSrc = ZnajdzKolumneWRegion(tbl, "Opis")
     jednColSrc = ZnajdzKolumneWRegion(tbl, "Jedn.przedm.")
     przedmColSrc = ZnajdzKolumneWRegion(tbl, "Przedmiar")
-    
+
     If idColSrc * opisColSrc * jednColSrc * przedmColSrc = 0 Then
         MsgBox "Brakuje nag³ówków (ID / Opis / Jedn.przedm. / Przedmiar) w '" & _
                wsSrc.Name & "'.", vbCritical
         Exit Sub
     End If
 
-    '----------------------------------------------------------------
-    '4.  Skopiuj wiersze 1-7 z szablonu LV (tytu³y, formaty, …)
-    '----------------------------------------------------------------
-    If UCase$(Left$(wsTgt.Name, 2)) = "LV" Then
+
+    '¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦
+    '4.  Kopiuj nag³ówki/formu³y z szablonu (tylko gdy arkusz istnia³)
+    '¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦
+    If Not newSheet And UCase$(Left$(wsTgt.Name, 2)) = "LV" Then
         gTemplateLV.Rows("1:8").Copy
         With wsTgt.Rows("1:8")
             .PasteSpecial xlPasteAllUsingSourceTheme
@@ -191,20 +189,22 @@ Private Sub CopyOnePair( _
         Application.CutCopyMode = False
     End If
 
-    '5a) kolumny A-E (ID, Lp, Opis, Jedn, Przedm.)  – czyœcimy od wiersza 8
+
+    '¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦
+    '5.  Czyszczenie starych danych
+    '¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦
     wsTgt.Range(wsTgt.Cells(START_ROW_TGT, COL_HID_ID), _
                 wsTgt.Cells(wsTgt.Rows.Count, COL_PRZEM_TGT)).ClearContents
-    
-    '5b) PRAWY blok F-AU – czyœcimy dopiero od wiersza 9,
-    '    aby nie skasowaæ formu³ w wierszu szablonu (wiersz 8)
-    Const LAST_COL As Long = 47                 'AU
+
+    Const LAST_COL As Long = 47           'AU
     wsTgt.Range(wsTgt.Cells(START_ROW_TGT + 1, COL_PRZEM_TGT + 1), _
                 wsTgt.Cells(wsTgt.Rows.Count, LAST_COL)).ClearContents
-    '----------------------------------------------------------------
-    '6.  Pierwszy i ostatni wiersz danych w Ÿródle (wg. kol. ID)
-    '----------------------------------------------------------------
-    Dim firstDataRow As Long
-    firstDataRow = headerRow + 1
+
+
+    '¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦
+    '6.  Pierwszy-ostatni wiersz danych
+    '¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦
+    Dim firstDataRow As Long: firstDataRow = headerRow + 1
     Do While firstDataRow <= tbl.Rows(tbl.Rows.Count).Row _
            And Not IsNumeric(wsSrc.Cells(firstDataRow, idColSrc).Value)
         firstDataRow = firstDataRow + 1
@@ -214,11 +214,11 @@ Private Sub CopyOnePair( _
     lastRowSrc = wsSrc.Cells(wsSrc.Rows.Count, idColSrc).End(xlUp).Row
     If lastRowSrc < firstDataRow Then Exit Sub
 
-    '----------------------------------------------------------------
-    '7.  Kopiuj wiersz po wierszu
-    '----------------------------------------------------------------
-    Dim w As Long: w = START_ROW_TGT
-    Dim i As Long
+
+    '¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦
+    '7.  Przenoszenie danych
+    '¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦
+    Dim i As Long, w As Long: w = START_ROW_TGT
     For i = firstDataRow To lastRowSrc
         If LenB(wsSrc.Cells(i, idColSrc).Value) <> 0 Then
             wsTgt.Cells(w, COL_HID_ID).Value = wsSrc.Cells(i, idColSrc).Value
@@ -230,18 +230,21 @@ Private Sub CopyOnePair( _
         End If
     Next i
 
-    '----------------------------------------------------------------
-    '8.  Ramki na nowo wstawionych danych
-    '----------------------------------------------------------------
+
+    '¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦
+    '8.  Ramki (na nowo skopiowanych danych)
+    '¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦
     UstawRamkiAll wsTgt.Range(wsTgt.Cells(START_ROW_TGT, COL_LP_TGT), _
                               wsTgt.Cells(w - 1, COL_PRZEM_TGT))
 
-    '----------------------------------------------------------------
-    '9.  Formu³y / sumy – tylko w arkuszach LV
-    '----------------------------------------------------------------
+
+    '¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦
+    '9.  LV-specyficzne formu³y / sumy
+    '¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦
     If UCase$(Left$(wsTgt.Name, 2)) = "LV" Then AfterPasteLV wsTgt
 End Sub
 '================================================================
+
 
 
 
