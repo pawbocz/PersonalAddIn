@@ -9,88 +9,144 @@ Private Const COL_KAT      As Long = 2       'B  (nazwa kategorii)
 Private Const COL_MIN      As Long = 3       'C  (minuty RG)
 
 '=============================================================
-' 1. Funkcja pomocnicza  –  szybka „normalizacja” tekstu
+' 1) Normalizacja tekstu (trim, lower, NBSP›spacja)
 '=============================================================
 Private Function CleanTxt(s As String) As String
-    CleanTxt = LCase$(Trim$(s))
+    CleanTxt = LCase$(Trim$(Replace(Replace(s, vbTab, " "), Chr(160), " ")))
 End Function
 
-'=============================================================
-' 2. Wyodrêbnienie przekroju kabla  (obs³uguje 4×5×10 › 5×10)
-'=============================================================
+'– normalizacja klucza przekroju
+Private Function NormPrzekrojKey(ByVal s As String) As String
+    Dim t As String
+    t = LCase$(Trim$(s))
+    t = Replace(t, ChrW(215), "x")   ' × › x
+    t = Replace(t, "*", "x")         ' * › x
+    t = Replace(t, " ", "")          ' usuñ spacje
+    t = Replace(t, ",", ".")         ' , › .
+    NormPrzekrojKey = t
+End Function
+
 Public Function WyodrebnijPrzekroj(opis As String) As String
     Dim re3 As Object: Set re3 = CreateObject("VBScript.RegExp")
-    re3.Pattern = "^\s*\d+\s*x\s*(\d+\s*x\s*\d+(\,\d+)?)"
+    re3.Pattern = "^\s*\d+\s*[x×*]\s*(\d+\s*[x×*]\s*\d+(?:[\,\.]\d+)?)"
     re3.IgnoreCase = True
     If re3.test(opis) Then
-        WyodrebnijPrzekroj = LCase$(Replace(re3.Execute(opis)(0).SubMatches(0), " ", ""))
+        'tu korzystamy z grupy przechwytuj¹cej
+        WyodrebnijPrzekroj = NormPrzekrojKey(CStr(re3.Execute(opis)(0).SubMatches(0)))
         Exit Function
     End If
 
     Dim re As Object: Set re = CreateObject("VBScript.RegExp")
-    re.Pattern = "(\d+\s*x\s*\d+(\,\d+)?)|(\bdn\d+\b)"
+    re.Pattern = "(\d+\s*[x×*]\s*\d+(?:[\,\.]\d+)?)|(\bdn\d+\b)"
     re.IgnoreCase = True
     If re.test(opis) Then
-        WyodrebnijPrzekroj = LCase$( _
-            Replace(Replace(re.Execute(opis)(0), " ", ""), ",", "."))
+        Dim m As Object: Set m = re.Execute(opis)(0)
+        Dim raw As String
+        If m.SubMatches.Count > 0 And Len(m.SubMatches(0)) > 0 Then
+            raw = CStr(m.SubMatches(0))
+        Else
+            raw = CStr(m.Value)
+        End If
+        WyodrebnijPrzekroj = NormPrzekrojKey(raw)
     Else
         WyodrebnijPrzekroj = ""
     End If
 End Function
 
-'=============================================================
-' 3. Budowa s³owników:
-'    • dictRG      – wszystkie wpisy "kat|nazwa"  (szukamy tu TYLKO kabli)
-'    • dictMaxCat  – maksymalna wartoœæ w ka¿dej kategorii
-'=============================================================
-Private Function BuildDicts(ByRef dExact As Object, ByRef dMax As Object) As Boolean
-    Set dExact = CreateObject("Scripting.Dictionary")
-    Set dMax = CreateObject("Scripting.Dictionary")
 
-    '–– wybór skoroszytu z arkuszem „Stawki” ––
+'=============================================================
+' 4) Budowa s³owników:
+'     • dictExact("kat|klucz") = min (klucze: orygina³, 5x2.5, 5x2,5, 1. s³owo…)
+'     • dictMax("kat") = najwy¿sza wartoœæ w kategorii
+'     Zwraca True, jeœli OK.
+'=============================================================
+Private Function BuildDicts(ByRef dictExact As Object, ByRef dictMax As Object) As Boolean
+    On Error GoTo oops
+    Set dictExact = CreateObject("Scripting.Dictionary")
+    Set dictMax = CreateObject("Scripting.Dictionary")
+
+    '— wybór workbooka (dzia³a z funkcji i z makra) —
     Dim wb As Workbook
-    If Application.Caller Is Nothing Then
-        Set wb = ActiveWorkbook
-    Else
-        Set wb = Application.Caller.Parent.Parent
-    End If
+    Dim vCaller As Variant
+    On Error Resume Next
+    vCaller = Application.Caller            'przy makrze: Error 2023
+    On Error GoTo 0
+    Select Case TypeName(vCaller)
+        Case "Range":  Set wb = vCaller.Parent.Parent
+        Case "String": Set wb = ActiveWorkbook
+        Case Else:     Set wb = ActiveWorkbook
+    End Select
     If wb Is Nothing Then Exit Function
 
+    '— arkusz „Stawki” —
     Dim ws As Worksheet
     On Error Resume Next
     Set ws = wb.Worksheets(SHEET_STAWKI)
     On Error GoTo 0
     If ws Is Nothing Then Exit Function
 
-    '–– zakres danych ––
+    '— tabela lub zakres —
     Dim rng As Range
     If ws.ListObjects.Count > 0 Then
         Set rng = ws.ListObjects(1).DataBodyRange
     Else
-        Dim lr As Long: lr = ws.Cells(ws.Rows.Count, COL_NAZWA).End(xlUp).Row
-        If lr < 2 Then Exit Function
-        Set rng = ws.Range(ws.Cells(2, COL_NAZWA), ws.Cells(lr, COL_MIN))
+        Dim lastRow As Long
+        lastRow = ws.Cells(ws.Rows.Count, COL_NAZWA).End(xlUp).Row
+        If lastRow < 2 Then Exit Function
+        Set rng = ws.Range(ws.Cells(2, COL_NAZWA), ws.Cells(lastRow, COL_MIN))
     End If
 
-    '–– pêtla po wierszach ––
-    Dim r As Range, nm As String, cat As String, v As Double
+    '— budowa s³owników —
+    Dim r As Range, nazwa As String, kat As String, minv As Double
+    Dim keyDot As String, keyComma As String, firstWord As String, k As String
+
     For Each r In rng.Columns(COL_NAZWA).Cells
-        nm = CleanTxt(r.Value)
-        cat = CleanTxt(r.Offset(0, COL_KAT - COL_NAZWA).Value)
-        If nm = "" Or cat = "" Then GoTo NextR
+        nazwa = CleanTxt(r.Value)
+        kat = CleanTxt(r.Offset(0, COL_KAT - COL_NAZWA).Value)
+        If nazwa <> "" And kat <> "" Then
+            minv = CDbl(r.Offset(0, COL_MIN - COL_NAZWA).Value)
 
-        v = CDbl(r.Offset(0, COL_MIN - COL_NAZWA).Value)
-        dExact(cat & "|" & nm) = v                      'dok³adna nazwa
+            ' maks w kategorii
+            If dictMax.Exists(kat) Then
+                If minv > dictMax(kat) Then dictMax(kat) = minv
+            Else
+                dictMax(kat) = minv
+            End If
 
-        If Not dMax.Exists(cat) Or v > dMax(cat) Then dMax(cat) = v
-NextR:
+            ' exact: orygina³
+            dictExact(kat & "|" & nazwa) = minv
+
+            ' exact: warianty kablowe
+            keyDot = NormPrzekrojKey(nazwa)                 'np. 5x2.5
+            If keyDot <> "" Then
+                dictExact(kat & "|" & keyDot) = minv
+                keyComma = Replace(keyDot, ".", ",")        '5x2,5
+                dictExact(kat & "|" & keyComma) = minv
+            End If
+
+            ' exact: 1. s³owo + warianty
+            firstWord = Split(nazwa, " ")(0)
+            If firstWord <> "" Then
+                dictExact(kat & "|" & CleanTxt(firstWord)) = minv
+                keyDot = NormPrzekrojKey(firstWord)
+                If keyDot <> "" Then
+                    dictExact(kat & "|" & keyDot) = minv
+                    dictExact(kat & "|" & Replace(keyDot, ".", ",")) = minv
+                End If
+            End If
+        End If
     Next r
 
-    BuildDicts = (dExact.Count > 0)
+    BuildDicts = True
+    Exit Function
+oops:
+    BuildDicts = False
 End Function
 
 '=============================================================
-' 4. Funkcja arkuszowa – zwraca MINUTY RG (0, gdy brak)
+' 5) Funkcja arkuszowa – zwraca MINUTY RG (0, gdy brak)
+'     • kable: tylko dopasowanie „na przekrój”
+'     • inne: maksimum w kategorii
 '=============================================================
 Public Function Roboczogodziny(kategoria As String, opis As String) As Double
     Static dictExact As Object, dictMax As Object
@@ -105,7 +161,7 @@ Public Function Roboczogodziny(kategoria As String, opis As String) As Double
     Dim cat As String: cat = CleanTxt(kategoria)
     If cat = "" Then Roboczogodziny = 0: Exit Function
 
-    '–– 1) kable – próba dok³adnego przekroju ––
+    '— KABLE: tylko dok³adne trafienie (bez fallbacku do maksimum) —
     If InStr(cat, "kabl") > 0 Then
         Dim pr As String: pr = WyodrebnijPrzekroj(opis)
         If pr <> "" Then
@@ -115,9 +171,11 @@ Public Function Roboczogodziny(kategoria As String, opis As String) As Double
                 Exit Function
             End If
         End If
+        Roboczogodziny = 0
+        Exit Function
     End If
 
-    '–– 2) pozosta³e – zwracamy najwy¿sz¹ wartoœæ w kategorii ––
+    '— INNE KATEGORIE: zwróæ maksimum w danej kategorii —
     If dictMax.Exists(cat) Then
         Roboczogodziny = dictMax(cat)
     Else
@@ -126,52 +184,60 @@ Public Function Roboczogodziny(kategoria As String, opis As String) As Double
 End Function
 
 '=============================================================
-' 5. Makro wstawiaj¹ce formu³y + koloruj¹ce braki
+' 6) Formularz + makro wstawiaj¹ce formu³y bez nadpisywania
 '=============================================================
-Public Sub WstawFormulyRG()
+Public Sub WstawFormulyRG_Ask()
+    Dim frm As New frmRGParams
+    frm.Show
+    If Not frm.FormOK Then Exit Sub
 
-    Const COL_OUT   As Long = 19            'S  (Roboczogodziny)
-    Const COL_CAT   As String = "AD"        'kolumna kategorii
-    Const COL_DESC  As String = "C"         'kolumna opisu
-    Const FIRST_ROW As Long = 8
-    Const BRAK_RG_COLOR As Long = &HFF      'RGB(255,0,0)
+    WstawFormulyRG frm.OutCol, frm.CatCol, frm.DescCol, frm.FirstRow
+End Sub
+
+Public Sub WstawFormulyRG( _
+    ByVal COL_OUT As Long, _
+    ByVal COL_CAT As Long, _
+    ByVal COL_DESC As Long, _
+    ByVal FIRST_ROW As Long)
+
+    Const BRAK_RG_COLOR As Long = vbRed    'RGB(255,0,0)
+
+    Dim wb As Workbook: Set wb = ActiveWorkbook
+    If wb Is Nothing Then Exit Sub
+
+    Application.ScreenUpdating = False
 
     Dim ws As Worksheet
-    For Each ws In ActiveWorkbook.Worksheets
-        If Left$(ws.Name, 2) = "LV" Then                     'obs³ugujemy tylko LV
+    For Each ws In wb.Worksheets
+        If Left$(ws.Name, 2) = "LV" Then
 
             Dim lastRow As Long
             lastRow = ws.Cells(ws.Rows.Count, 1).End(xlUp).Row
-            If lastRow < FIRST_ROW Then GoTo NextWs          'brak danych
+            If lastRow < FIRST_ROW Then GoTo NextWs
 
             Dim r As Long, adrCat As String, adrDesc As String, f As String
             For r = FIRST_ROW To lastRow
 
-                'adresy bez $ (wzglêdne) – u³atwia kopiowanie/FillDown
                 adrCat = ws.Cells(r, COL_CAT).Address(False, False)
                 adrDesc = ws.Cells(r, COL_DESC).Address(False, False)
                 f = "=IFERROR(Roboczogodziny(" & adrCat & "," & adrDesc & "),0)"
 
                 With ws.Cells(r, COL_OUT)
-                    '-------------------------------
-                    '1) Wpisz formu³ê TYLKO gdy:
-                    '   • brak formu³y ORAZ
-                    '   • komórka pusta albo 0
-                    '-------------------------------
-                    If (Not .HasFormula) And _
-                       (Len(.Value) = 0 Or .Value = 0) Then
+                    '1) Nie nadpisuj – pisz tylko, gdy brak formu³y i pusto/zero
+                    If (Not .HasFormula) And (Len(.Value2) = 0 Or val(.Value2) = 0) Then
                         .Formula = f
                     End If
 
-                    '-------------------------------
-                    '2) Koloruj braki RG
-                    '-------------------------------
-                    If .HasFormula Then
-                        If ws.Cells(r, COL_CAT).Value <> "" And .Value = 0 Then
-                            .Interior.Color = BRAK_RG_COLOR      'brak trafienia
-                        ElseIf .Interior.Color = BRAK_RG_COLOR Then
-                            .Interior.Pattern = xlNone           ' RG ju¿ jest › zdejmij
-                        End If
+                    '2) Koloruj braki (kategoria jest, a wynik = 0)
+                    Dim hasCat As Boolean, isZero As Boolean, isRed As Boolean
+                    hasCat = (Len(Trim$(ws.Cells(r, COL_CAT).Value2)) > 0)
+                    isZero = (val(.Value2) = 0)
+                    isRed = (.Interior.Color = BRAK_RG_COLOR)
+
+                    If hasCat And isZero Then
+                        If Not isRed Then .Interior.Color = BRAK_RG_COLOR
+                    Else
+                        If isRed Then .Interior.Pattern = xlNone
                     End If
                 End With
             Next r
@@ -179,7 +245,11 @@ Public Sub WstawFormulyRG()
 NextWs:
     Next ws
 
-    MsgBox "Formu³y RG dodane (tylko do pustych komórek). " & _
-           "Braki oznaczone czerwono.", vbInformation
+    Application.ScreenUpdating = True
+
+    MsgBox "Formu³y RG dodane (tylko do pustych/zerowych). Braki oznaczone na czerwono.", _
+           vbInformation
 End Sub
-'=============================================================
+'========================  /modRG  ==========================
+
+
