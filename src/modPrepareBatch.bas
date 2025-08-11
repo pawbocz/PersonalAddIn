@@ -23,13 +23,13 @@ Sub PrepareSourceData_All()
     If ans = vbCancel Then Exit Sub
     
     Dim sh As Worksheet
-    If ans = vbYes Then                             '• wszystkie
+    If ans = vbYes Then
         For Each sh In ActiveWorkbook.Worksheets
             sel.Add sh
         Next sh
-    Else                                            '• lista wyboru
-        Dim frmS As New frmSelectSheets             'prosty UserForm z listbox
-        frmS.Init ActiveWorkbook.Worksheets         'wype³nij listê
+    Else
+        Dim frmS As New frmSelectSheets
+        frmS.Init ActiveWorkbook.Worksheets
         frmS.Show
         If Not frmS.FormOK Then Exit Sub
         For Each sh In frmS.SelectedSheets
@@ -60,12 +60,7 @@ Sub PrepareSourceData_All()
            "Ustandaryzowano: " & okCnt & vbCrLf & _
            "Pominiêto (b³¹d): " & errCnt, vbInformation
 End Sub
-'================================================================
 
-
-'================================================================
-'  P r e p O n e S h e e t   –   ta sama logika co wczeœniej
-'================================================================
 Private Sub PrepOneSheet(ws As Worksheet, _
                          ByVal hdrRow As Long, ByVal firstDataRow As Long, _
                          ByVal colLp As Long, ByVal colOpis As Long, _
@@ -106,7 +101,7 @@ Private Sub PrepOneSheet(ws As Worksheet, _
         r = r + 1
     Loop
     Dim lastRow As Long: lastRow = r - 1
-    If lastRow < firstDataRow Then Exit Sub         'brak danych
+    If lastRow < firstDataRow Then Exit Sub
     
     '--- 4. numeracja ID ---------------------------------------
     With ws.Range(ws.Cells(firstDataRow, 1), ws.Cells(lastRow, 1))
@@ -125,6 +120,5 @@ Private Sub PrepOneSheet(ws As Worksheet, _
         .Rows(hdrRow).Font.Bold = True
     End With
 End Sub
-'================================================================
 
 

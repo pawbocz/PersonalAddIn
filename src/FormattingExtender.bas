@@ -2,14 +2,13 @@ Attribute VB_Name = "FormattingExtender"
 
 Sub RozszerzFormulyLV(ByVal wsLV As Worksheet)
 
-    If Left$(wsLV.Name, 2) <> "LV" Then Exit Sub        'obs³uga tylko LV
-
+    If Left$(wsLV.Name, 2) <> "LV" Then Exit Sub
     Const START_ROW As Long = 8
-    Const FIRST_COL As Long = 7          'G   (F+1)
-    Const LAST_COL  As Long = 48         'AV  (AU+1)
-    Const ID_COL    As Long = 1          'A   (ukryte ID)
+    Const FIRST_COL As Long = 7
+    Const LAST_COL  As Long = 48
+    Const ID_COL    As Long = 1
 
-    '--- ustal ostatni wiersz danych wg kol. ID -----------------
+
     Dim lastRow As Long
     lastRow = wsLV.Cells(wsLV.Rows.Count, ID_COL).End(xlUp).Row
     If lastRow < START_ROW Then Exit Sub
@@ -34,7 +33,7 @@ Sub RozszerzFormulyLV(ByVal wsLV As Worksheet)
     Dim sumRow As Long: sumRow = lastRow + 2
     Dim colsToSum As Variant
     colsToSum = Array(8, 11, 35, 36, 37, 38, 39, 40, 42, 43, _
-                      44, 45, 46, 47, 48)   'ka¿da +1 w stosunku do starej
+                      44, 45, 46, 47, 48)
 
     Dim i As Long
     For i = LBound(colsToSum) To UBound(colsToSum)
@@ -44,16 +43,16 @@ Sub RozszerzFormulyLV(ByVal wsLV As Worksheet)
             .Font.Bold = True
         End With
     Next i
-    wsLV.Cells(sumRow, 7).Value = "Razem:"    'kol. G
+    wsLV.Cells(sumRow, 7).Value = "Razem:"
     wsLV.Cells(sumRow, 7).Font.Bold = True
-    wsLV.Cells(sumRow, 10).Value = "Razem:"   'kol. J
+    wsLV.Cells(sumRow, 10).Value = "Razem:"
     wsLV.Cells(sumRow, 10).Font.Bold = True
 
     NakladanieSegmentowychRamek wsLV, sumRow, sumRow
 
-    '------------------------------------------------------------
+
     ' 4)  Sekcja  P O D S U M O W A N I E   (AI:AN, 4 wiersze)
-    '------------------------------------------------------------
+
     Dim hdrRow As Long, catRow As Long, unitRow As Long, valRow As Long
     hdrRow = sumRow + 2
     catRow = hdrRow + 1
@@ -61,7 +60,7 @@ Sub RozszerzFormulyLV(ByVal wsLV As Worksheet)
     valRow = hdrRow + 3
 
     '4a. Nag³ówek
-    With wsLV.Range(wsLV.Cells(hdrRow, 35), wsLV.Cells(hdrRow, 40)) 'AI:AN
+    With wsLV.Range(wsLV.Cells(hdrRow, 35), wsLV.Cells(hdrRow, 40))
         .Merge
         .Value = "PODSUMOWANIE"
         .HorizontalAlignment = xlCenter
@@ -99,12 +98,12 @@ Sub RozszerzFormulyLV(ByVal wsLV As Worksheet)
 
     '4d. Formu³y – odwo³ania do SUM
     With wsLV
-        .Cells(valRow, 35).Formula = "=" & .Cells(sumRow, 11).Address 'kol. K
-        .Cells(valRow, 36).Formula = "=" & .Cells(sumRow, 36).Address 'AJ
-        .Cells(valRow, 37).Formula = "=" & .Cells(sumRow, 46).Address 'AT
-        .Cells(valRow, 38).Formula = "=" & .Cells(sumRow, 40).Address 'AN
-        .Cells(valRow, 39).Formula = "=" & .Cells(sumRow, 47).Address 'AU
-        .Cells(valRow, 40).Formula = "=" & .Cells(sumRow, 48).Address 'AV
+        .Cells(valRow, 35).Formula = "=" & .Cells(sumRow, 11).Address
+        .Cells(valRow, 36).Formula = "=" & .Cells(sumRow, 36).Address
+        .Cells(valRow, 37).Formula = "=" & .Cells(sumRow, 46).Address
+        .Cells(valRow, 38).Formula = "=" & .Cells(sumRow, 40).Address
+        .Cells(valRow, 39).Formula = "=" & .Cells(sumRow, 47).Address
+        .Cells(valRow, 40).Formula = "=" & .Cells(sumRow, 48).Address
     End With
 
     '4e. Ramki – niebieskie
@@ -120,10 +119,9 @@ Sub RozszerzFormulyLV(ByVal wsLV As Worksheet)
         .Item(xlEdgeBottom).Weight = xlMedium
     End With
 End Sub
-'==============================================================
 
 
-'======== NAK£ADANIE RAMEK NA ZDEFINIOWANE SEGMENTY =============
+
 Sub NakladanieSegmentowychRamek(ws As Worksheet, FirstRow As Long, lastRow As Long)
 
     Dim segments As Variant, s As Variant
@@ -139,6 +137,6 @@ Sub NakladanieSegmentowychRamek(ws As Worksheet, FirstRow As Long, lastRow As Lo
         End With
     Next s
 End Sub
-'==============================================================
+
 
 

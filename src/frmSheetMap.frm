@@ -13,58 +13,49 @@ Attribute VB_GlobalNameSpace = False
 Attribute VB_Creatable = False
 Attribute VB_PredeclaredId = True
 Attribute VB_Exposed = False
-'===========================  frmSheetMap  =========================
+
 Option Explicit
 
-'––––––––––––––––  Z M I E N N E   M O D U £ U  –––––––––––––––––––
-'   (musz¹ byæ NAD pierwsz¹ procedur¹!)
 
-'wyniki, których oczekuje MainCopy
+
 Public FormOK As Boolean
-Public pairs  As Collection          'each item = Array(srcName, tgtName)
+Public pairs  As Collection
 
-'ustawienia kolumn LV (zak³adka 2)
+
 Private mColLp     As Long
 Private mColOpis   As Long
 Private mColJedn   As Long
 Private mColPrzedm As Long
 Private mStartRow  As Long
-'------------------------------------------------------------------
 
-'––––––––––––––––  P R O P E R T Y   G E T  –––––––––––––––––––––––
-'zak³adka 1 – wiersz nag³ówków
 Public Property Get hdrRow() As Long
-    hdrRow = val(Me.txtHdrRow.Value)          '0, gdy pole puste
+    hdrRow = val(Me.txtHdrRow.Value)
 End Property
 
 Public Property Get UseCustomCols() As Boolean
     UseCustomCols = Me.chkCustom.Value
 End Property
 
-'zak³adka 2 – kolumny LV + pierwszy wiersz danych
 Public Property Get colLp() As Long:     colLp = mColLp:         End Property
 Public Property Get colOpis() As Long:   colOpis = mColOpis:     End Property
 Public Property Get colJedn() As Long:   colJedn = mColJedn:     End Property
 Public Property Get colPrzedm() As Long: colPrzedm = mColPrzedm: End Property
 Public Property Get startRow() As Long:  startRow = mStartRow:   End Property
-'------------------------------------------------------------------
+
 
 Private Sub Label6_Click()
 
 End Sub
 
-'==================================================================
-'  I N I T
-'==================================================================
+
 Private Sub UserForm_Initialize()
 
-    '––––  AUTOSKALA DPI  ––––––––––––––––––––––––––––––––––––––
-    On Error Resume Next                      'Excel ?2016 nie ma PixelsPerInch
+    
+    On Error Resume Next
     If Application.PixelsPerInch <> 96 Then _
         Me.Zoom = 100 * Application.PixelsPerInch / 96
     On Error GoTo 0
-    '––––  KONIEC AUTOSKALI  –––––––––––––––––––––––––––––––––––
-
+ 
     Dim wbSrc As Workbook: Set wbSrc = gSourceWB
     Dim wbTgt As Workbook: Set wbTgt = gTargetWB
 
@@ -76,20 +67,18 @@ Private Sub UserForm_Initialize()
         lstTgt.AddItem sh.Name
     Next sh
 
-    '--- domyœlne kolumny LV (standard) --------------------------
-    txtLp.Value = "2"         'B
-    txtOpis.Value = "3"       'C
-    txtJedn.Value = "4"       'D
-    txtPrzedm.Value = "5"     'E
-    txtStart.Value = "8"      'pierwszy wiersz danych
+    
+    txtLp.Value = "2"
+    txtOpis.Value = "3"
+    txtJedn.Value = "4"
+    txtPrzedm.Value = "5"
+    txtStart.Value = "8"
 
     Set pairs = New Collection
     FormOK = False
 End Sub
 
-'==================================================================
-'  P A R O W A N I E   A R K U S Z Y
-'==================================================================
+
 
 Private Sub chkCustom_Click()
     Dim enab As Boolean: enab = Me.chkCustom.Value
@@ -135,9 +124,7 @@ Private Sub btnAddNewTgt_Click()
     txtNewTgt.Text = ""
 End Sub
 
-'==================================================================
-'  O K   /   A N U L U J
-'==================================================================
+
 Private Sub btnStart_Click()
 
     If pairs.Count = 0 Then
@@ -145,7 +132,7 @@ Private Sub btnStart_Click()
         Exit Sub
     End If
 
-    '–– odczyt i walidacja kolumn LV ––––––––––––––––––––––––––––
+
     On Error GoTo BadInput
     mColLp = CLng(txtLp.Value)
     mColOpis = CLng(txtOpis.Value)
@@ -171,12 +158,10 @@ Private Sub btnCancel_Click()
     FormOK = False
     Me.Hide
 End Sub
-'==================================================================
-'  P O M O C N I C Z E   –   brak akcji
-'==================================================================
+
 Private Sub MultiPage1_Change()
-    'nic – zostaw puste
+    'nic
 End Sub
-'==================================================================
+
 
 

@@ -27,7 +27,7 @@ End Sub
 
 Private Sub UserForm_Initialize()
     On Error Resume Next
-    ' Skaluje na nietypowych DPI (opcjonalnie)
+
     If Application.PixelsPerInch <> 96 Then Me.Zoom = 100 * Application.PixelsPerInch / 96
     On Error GoTo 0
 
@@ -62,7 +62,7 @@ Private Sub cmdCancel_Click()
     Me.Hide
 End Sub
 
-'--- helper: litera/ci¹g liter lub numer › numer kolumny ---
+
 Private Function ColTextToNumber(ByVal s As String) As Long
     Dim i As Long, ch As String, n As Long
     If Len(s) = 0 Then Exit Function

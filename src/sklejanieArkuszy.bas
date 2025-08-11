@@ -6,7 +6,7 @@ Option Explicit
 Public Sub MergeExcelFilesInFolder()
 
     Dim folderPath As String
-    folderPath = ActiveWorkbook.Path          '<<< g³ówna zmiana
+    folderPath = ActiveWorkbook.Path
 
     If Len(folderPath) = 0 Then
         MsgBox "Aktywny skoroszyt nie jest zapisany." & vbCrLf & _
@@ -18,34 +18,34 @@ Public Sub MergeExcelFilesInFolder()
     MergeCore folderPath
 End Sub
 
-'JAKIŒ PRZYK£ADOWY KOMENTARZ
+
 Private Sub MergeCore(folderPath As String)
 
     Const OUT_NAME As String = "z³¹czony_plik.xlsx"
     
     Dim wbOut As Workbook
-    Set wbOut = Workbooks.Add(xlWBATWorksheet)          '1 pusty arkusz
+    Set wbOut = Workbooks.Add(xlWBATWorksheet)
     Dim tempSheet As Worksheet: Set tempSheet = wbOut.Sheets(1)
     
     Application.ScreenUpdating = False
     Application.DisplayAlerts = False
     
     Dim fname As String
-    fname = Dir(folderPath & "\*.xls*")                 'xls, xlsx, xlsm
+    fname = Dir(folderPath & "\*.xls*")
     
     Do While Len(fname) > 0
-        If fname <> OUT_NAME And Left$(fname, 2) <> "~$" Then     'pomiñ wynik i plik tmp
+        If fname <> OUT_NAME And Left$(fname, 2) <> "~$" Then
             Debug.Print "Kopiujê: "; fname
             
             Dim wbIn As Workbook
             Set wbIn = Workbooks.Open(folderPath & "\" & fname, ReadOnly:=True)
             
-            wbIn.Sheets(1).Copy Before:=wbOut.Sheets(1)            'skopiuj na pocz¹tek
+            wbIn.Sheets(1).Copy Before:=wbOut.Sheets(1)
             Dim newSh As Worksheet: Set newSh = wbOut.Sheets(1)
             
             '--- unikalna nazwa arkusza ---------------------------
             Dim base$, candidate$, i&
-            base = Left$(Split(fname, " ")(0), 31)                 'pierwszy wyraz, max 31
+            base = Left$(Split(fname, " ")(0), 31)
             candidate = base: i = 1
             Do While SheetNameExists(wbOut, candidate)
                 candidate = Left$(base, 31 - Len("_" & i)) & "_" & i
@@ -66,7 +66,7 @@ Private Sub MergeCore(folderPath As String)
     outFull = folderPath & "\" & OUT_NAME
     
     On Error Resume Next
-    Kill outFull                                'usuñ istniej¹cy plik
+    Kill outFull
     On Error GoTo 0
     
     wbOut.SaveAs Filename:=outFull, FileFormat:=xlOpenXMLWorkbook
@@ -79,7 +79,7 @@ Private Sub MergeCore(folderPath As String)
            "Plik wynikowy: " & outFull, vbInformation
 End Sub
 
-'¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦ POMOCNICZA: sprawdŸ unikalnoœæ nazwy ¦¦¦¦¦¦¦¦¦¦¦¦¦
+
 Private Function SheetNameExists(wb As Workbook, nm As String) As Boolean
     Dim sh As Worksheet
     For Each sh In wb.Worksheets
@@ -89,6 +89,4 @@ Private Function SheetNameExists(wb As Workbook, nm As String) As Boolean
         End If
     Next sh
 End Function
-'==================================================================
-
 

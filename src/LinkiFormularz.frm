@@ -14,7 +14,7 @@ Attribute VB_Creatable = False
 Attribute VB_PredeclaredId = True
 Attribute VB_Exposed = False
 Private Sub UserForm_Initialize()
-    On Error Resume Next                       'dla starszych wersji
+    On Error Resume Next
     If Application.PixelsPerInch <> 96 Then _
         Me.Zoom = 100 * Application.PixelsPerInch / 96
     On Error GoTo 0
@@ -44,14 +44,13 @@ Private Sub btnStart_Click()
         MsgBox "Nie dodano ¿adnych fragmentów linków do zachowania.", vbExclamation
         Exit Sub
     End If
-    
-    ' Stwórz tablicê z ListBoxa
+
     ReDim keepList(lstZachowane.ListCount - 1)
     For i = 0 To lstZachowane.ListCount - 1
         keepList(i) = LCase(lstZachowane.List(i))
     Next i
 
-    ' Pobierz linki
+
     linki = ActiveWorkbook.LinkSources(xlLinkTypeExcelLinks)
     
     If Not IsEmpty(linki) Then

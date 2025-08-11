@@ -1,36 +1,35 @@
 Attribute VB_Name = "modCopyLV"
-'========  modCopyLV  ==========================================
+
 Option Explicit
 
-'--- kolumna ID jest zawsze ukryta w kolumnie A -----------------
-Const COL_HID_ID As Long = 1          'A
 
-'--- domyœlne mapowanie kolumn LV (po dodaniu ID) ---------------
-Const DEF_LP_COL     As Long = 2      'B
-Const DEF_OPIS_COL   As Long = 3      'C
-Const DEF_PRZEM_COL  As Long = 4      'D      ‹–– PRZEDMIAR
-Const DEF_JEDN_COL   As Long = 6      'F      ‹–– JEDN.przedm.
-Const DEF_START_ROW  As Long = 8      'pierwszy wiersz danych w LV
+Const COL_HID_ID As Long = 1
 
-'--- GLOBALNE ---------------------------------------------------
-Public gSourceWB   As Workbook        'plik inwestorski
-Public gTargetWB   As Workbook        'plik LV
-Public gTemplateLV As Worksheet       'pierwszy arkusz „LV…” lub LV_SZABLON
-'===============================================================
+Const DEF_LP_COL     As Long = 2
+Const DEF_OPIS_COL   As Long = 3
+Const DEF_PRZEM_COL  As Long = 4
+Const DEF_JEDN_COL   As Long = 6
+Const DEF_START_ROW  As Long = 8
+
+
+Public gSourceWB   As Workbook
+Public gTargetWB   As Workbook
+Public gTemplateLV As Worksheet
+
 
 
 '=== HELPER: wgrywa top 1..8 z szablonu bez schowka, plus szer. i wys. ===
 Private Sub ApplyTemplateTop8(ByVal wsTgt As Worksheet)
-    'zakres: A1:AU8 (47 kolumn)
+ 
     gTemplateLV.Range("A1:AU8").Copy Destination:=wsTgt.Range("A1")
 
-    'szerokoœci kolumn 1..47 (A:AU)
+  
     Dim c As Long
     For c = 1 To 47
         wsTgt.Columns(c).ColumnWidth = gTemplateLV.Columns(c).ColumnWidth
     Next c
 
-    'wysokoœci wierszy 1..8
+
     Dim r As Long
     For r = 1 To 8
         wsTgt.Rows(r).RowHeight = gTemplateLV.Rows(r).RowHeight
@@ -40,7 +39,7 @@ End Sub
 
 
 
-'============================  M A I N  =========================
+
 Sub MainCopy()
 
     '––– 0. wybór pliku docelowego LV –––––––––––––––––––––––––––
@@ -65,14 +64,14 @@ Sub MainCopy()
     Load frmSheetMap
     frmSheetMap.Show
     
-    If Not frmSheetMap.FormOK Then            'anulowano formularz
+    If Not frmSheetMap.FormOK Then
         gTargetWB.Close False
         Exit Sub
     End If
     
     Dim userHdrRow As Long: userHdrRow = frmSheetMap.hdrRow
     
-    '------ mapowanie kolumn docelowych LV -----------------------
+
     Dim mapLp As Long, mapOpis As Long, mapJedn As Long
     Dim mapPrzedm As Long, mapStart As Long
     
@@ -90,7 +89,7 @@ Sub MainCopy()
         mapStart = DEF_START_ROW
     End If
     
-    'gdy któregoœ pola brak / zero – wska¿ domyœlne
+
     If mapLp = 0 Then mapLp = DEF_LP_COL
     If mapOpis = 0 Then mapOpis = DEF_OPIS_COL
     If mapJedn = 0 Then mapJedn = DEF_JEDN_COL
@@ -115,7 +114,7 @@ Sub MainCopy()
     Application.ScreenUpdating = False
     
     Dim wsSrc As Worksheet
-    For Each pr In frmSheetMap.pairs            'pr = Array(srcName, tgtName)
+    For Each pr In frmSheetMap.pairs
         Set wsSrc = gSourceWB.Sheets(pr(0))
         CopyOnePair wsSrc, gTargetWB, CStr(pr(1)), userHdrRow, _
                      mapLp, mapOpis, mapJedn, mapPrzedm, mapStart
@@ -128,9 +127,7 @@ Sub MainCopy()
 End Sub
 '===============================================================
 
-'================================================================
-'  C O P Y  O N E   P A I R
-'================================================================
+
 Private Sub CopyOnePair( _
         wsSrc As Worksheet, _
         wbTgt As Workbook, _
@@ -146,29 +143,24 @@ Private Sub CopyOnePair( _
     If UCase$(tgtName) = "SUMA" Then Exit Sub
 
 
-    '¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦
+
     '1.  Arkusz docelowy (kopiuj wzorzec LV, jeœli nie istnieje)
-    '¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦
+ 
     Dim wsTgt As Worksheet, newSheet As Boolean
     On Error Resume Next
     Set wsTgt = wbTgt.Worksheets(tgtName)
     On Error GoTo 0
 
-    If wsTgt Is Nothing Then               '–– tworzymy z szablonu ––
+    If wsTgt Is Nothing Then
         gTemplateLV.Copy After:=wbTgt.Sheets(wbTgt.Sheets.Count)
         Set wsTgt = wbTgt.Sheets(wbTgt.Sheets.Count)
         On Error Resume Next: wsTgt.Name = tgtName: On Error GoTo 0
-        newSheet = True                    '‹ flaga: to œwie¿y arkusz
+        newSheet = True
     End If
 
-    'Jeœli to NIE jest œwie¿o skopiowany arkusz, upewnij siê, ¿e ma
-    'ukryt¹ kolumnê A=ID.  Szablon ma j¹ ju¿ w sobie, wiêc pomijamy.
-    
 
-
-    '¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦
     '2.  Ustal wiersz nag³ówków i pe³ny zakres tabeli w Ÿródle
-    '¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦
+
     Dim headerRow As Long, tbl As Range
     If userHdrRow > 0 Then
         headerRow = userHdrRow
@@ -182,9 +174,9 @@ Private Sub CopyOnePair( _
     End If
 
 
-    '¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦
+
     '3.  ZnajdŸ bazowe kolumny w Ÿródle
-    '¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦
+
     Dim idColSrc As Long, opisColSrc As Long, jednColSrc As Long, przedmColSrc As Long
     idColSrc = ZnajdzKolumneWRegion(tbl, "ID")
     opisColSrc = ZnajdzKolumneWRegion(tbl, "Opis")
@@ -200,20 +192,16 @@ Private Sub CopyOnePair( _
 
     '4) bezwarunkowo wgraj top z szablonu (nie polegaj na schowku)
     If UCase$(Left$(wsTgt.Name, 2)) = "LV" Then
-        'opcjonalna os³ona: nie nadpisuj samego szablonu
         If wsTgt.CodeName <> gTemplateLV.CodeName Then
             ApplyTemplateTop8 wsTgt
         End If
     End If
-    
-    '*** TERAZ zadbaj o kolumnê ID (po wgraniu topu) ***
+
     EnsureHiddenIDColumn wsTgt
     
 
-
-    '¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦
     '5.  Czyszczenie starych danych
-    '¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦
+
     wsTgt.Range(wsTgt.Cells(START_ROW_TGT + 1, COL_HID_ID), _
             wsTgt.Cells(wsTgt.Rows.Count, COL_PRZEM_TGT)).ClearContents
 
@@ -222,9 +210,8 @@ Private Sub CopyOnePair( _
                 wsTgt.Cells(wsTgt.Rows.Count, LAST_COL)).ClearContents
 
 
-    '¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦
     '6.  Pierwszy-ostatni wiersz danych
-    '¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦
+
     Dim firstDataRow As Long: firstDataRow = headerRow + 1
     Do While firstDataRow <= tbl.Rows(tbl.Rows.Count).Row _
            And Not IsNumeric(wsSrc.Cells(firstDataRow, idColSrc).Value)
@@ -236,9 +223,8 @@ Private Sub CopyOnePair( _
     If lastRowSrc < firstDataRow Then Exit Sub
 
 
-    '¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦
     '7.  Przenoszenie danych
-    '¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦
+
     Dim i As Long, w As Long: w = START_ROW_TGT
     For i = firstDataRow To lastRowSrc
         If LenB(wsSrc.Cells(i, idColSrc).Value) <> 0 Then
@@ -252,16 +238,14 @@ Private Sub CopyOnePair( _
     Next i
 
 
-    '¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦
     '8.  Ramki (na nowo skopiowanych danych)
-    '¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦
+
     UstawRamkiAll wsTgt.Range(wsTgt.Cells(START_ROW_TGT, COL_LP_TGT), _
                               wsTgt.Cells(w - 1, COL_PRZEM_TGT))
 
 
-    '¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦
     '9.  LV-specyficzne formu³y / sumy
-    '¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦
+
     If UCase$(Left$(wsTgt.Name, 2)) = "LV" Then AfterPasteLV wsTgt
 End Sub
 '================================================================
@@ -270,17 +254,17 @@ End Sub
 
 
 
-'-------------- PO PASTE – formu³y, sumy, ramki -----------------
+
 Private Sub AfterPasteLV(ByVal ws As Worksheet)
     RozszerzFormulyLV ws
 End Sub
-'----------------------------------------------------------------
+
 
 Private Function GetTemplateLV(wb As Workbook) As Worksheet
     On Error Resume Next
-    Set GetTemplateLV = wb.Worksheets("LV_SZABLON")   'preferowany
+    Set GetTemplateLV = wb.Worksheets("LV_SZABLON")
     On Error GoTo 0
-    If GetTemplateLV Is Nothing Then                  'fallback
+    If GetTemplateLV Is Nothing Then
         Dim sh As Worksheet
         For Each sh In wb.Worksheets
             If LCase(sh.Name) Like "lv*" Then
@@ -297,7 +281,7 @@ Private Function SheetExists(wb As Workbook, ByVal nm As String) As Boolean
     On Error GoTo 0
 End Function
 
-'===== w modCopyLV =============================================
+
 Private Sub SavePairsToSettings( _
         ByVal pairs As Collection, _
         ByVal wb As Workbook)
@@ -305,55 +289,50 @@ Private Sub SavePairsToSettings( _
     Const SH_NAME As String = "Ustawienia"
     
     Dim sh As Worksheet
-    '--- spróbuj z³apaæ istniej¹cy arkusz ----------------------
+   
     On Error Resume Next
     Set sh = wb.Worksheets(SH_NAME)
     On Error GoTo 0
     
-    '--- jeœli nie ma – utwórz i ukryj -------------------------
+   
     If sh Is Nothing Then
         Set sh = wb.Worksheets.Add(Before:=wb.Sheets(1))
         sh.Name = SH_NAME
-        sh.Visible = xlSheetVeryHidden       'ukryty, ale nie "VeryHidden"?
-        '• xlSheetVeryHidden = ca³kiem niewidoczny w Excelu
-        '• xlSheetHidden     = mo¿na ods³oniæ przez Format ? Unhide
+        sh.Visible = xlSheetVeryHidden
+
     End If
     
-    '--- wyczyœæ i wpisz nag³ówki ------------------------------
+
     sh.Cells.Clear
     sh.Range("A1:B1").Value = Array("SourceSheet", "TargetLV")
     sh.Range("A1:B1").Font.Bold = True
     
-    '--- zapisuj pary ------------------------------------------
+
     Dim r As Long: r = 2
     Dim pr As Variant
     For Each pr In pairs
-        sh.Cells(r, 1).Value = pr(0)          'arkusz Ÿród³owy
-        sh.Cells(r, 2).Value = pr(1)          'arkusz LV
+        sh.Cells(r, 1).Value = pr(0)
+        sh.Cells(r, 2).Value = pr(1)
         r = r + 1
     Next pr
-    
-    '--- (opc.) komunikat do Immediate -------------------------
+
     Debug.Print "SavePairsToSettings:", pairs.Count, "par zapisano do", wb.Name
 End Sub
 
 
-'------------------------------------------------------------------
-'  Zapewnia, ¿e w arkuszu docelowym jest ukryta kolumna A = "ID"
-'  – wstawia, jeœli jej brak
-'  – ustawia szerokoœæ 0 i blokuje przed edycj¹
-'------------------------------------------------------------------
+
+
 Private Sub EnsureHiddenIDColumn(ws As Worksheet)
 
-    Const HDR_ROW As Long = 4        'wiersz nag³ówków
+    Const HDR_ROW As Long = 4
 
     If Trim$(LCase$(ws.Cells(HDR_ROW, 1).Value)) <> "id" Then
-        ws.Columns(1).Insert Shift:=xlToRight          'wstaw A
-        ws.Cells(HDR_ROW, 1).Value = "ID"              'nag³ówek
+        ws.Columns(1).Insert Shift:=xlToRight
+        ws.Cells(HDR_ROW, 1).Value = "ID"
 
         With ws.Columns(1)
-            .ColumnWidth = 0                           'ukryj
-            .Locked = True                             'zablokuj
+            .ColumnWidth = 0
+            .Locked = True
         End With
     End If
 End Sub

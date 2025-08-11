@@ -3,22 +3,18 @@ Attribute VB_Name = "modRG"
 Option Explicit
 
 
-'––– sta³e dla arkusza „Stawki” ––––––––––––––––––––––––––––––
-Private Const SHEET_STAWKI As String = "Stawki"
-Private Const COL_NAZWA    As Long = 1    'A
-Private Const COL_KAT      As Long = 2    'B
-Private Const COL_MIN      As Long = 3    'C   (minuty RG)
 
-'-------------------------------------------------------------
-' 1) Normalizacja tekstu
-'-------------------------------------------------------------
+Private Const SHEET_STAWKI As String = "Stawki"
+Private Const COL_NAZWA    As Long = 1
+Private Const COL_KAT      As Long = 2
+Private Const COL_MIN      As Long = 3
+
+
 Private Function CleanTxt(s As String) As String
     CleanTxt = LCase$(Trim$(Replace(Replace(s, vbTab, " "), Chr(160), " ")))
 End Function
 
-'-------------------------------------------------------------
-' 2) Klucz przekroju (zamiana „×”, „*”, spacje, przecinki › kropki)
-'-------------------------------------------------------------
+
 Private Function NormPrzekrojKey(ByVal s As String) As String
     Dim t As String
     t = LCase$(Trim$(s))
@@ -29,9 +25,7 @@ Private Function NormPrzekrojKey(ByVal s As String) As String
     NormPrzekrojKey = t
 End Function
 
-'-------------------------------------------------------------
-' 3) Funkcja do wyci¹gania numeru koryta 50…600
-'-------------------------------------------------------------
+
 Private Function GetTrayWidth(txt As String) As String
     Dim reW As Object: Set reW = CreateObject("VBScript.RegExp")
     reW.Global = False: reW.IgnoreCase = True
@@ -41,12 +35,12 @@ Private Function GetTrayWidth(txt As String) As String
         Dim m As Object: Set m = reW.Execute(txt)(0)
         Dim numTxt As String
         If m.SubMatches(0) <> "" Then
-            numTxt = m.SubMatches(0)     'K100 / D300 …
+            numTxt = m.SubMatches(0)
         Else
-            numTxt = m.SubMatches(1)     '… 300 mm
+            numTxt = m.SubMatches(1)
         End If
 
-        Select Case numTxt              'filtr dozwolonych
+        Select Case numTxt
             Case "50", "100", "200", "300", "400", "500", "600"
                 GetTrayWidth = numTxt
         End Select
@@ -59,7 +53,7 @@ Public Function WyodrebnijPrzekroj(opis As String) As String
     re3.Pattern = "^\s*\d+\s*[x×*]\s*(\d+\s*[x×*]\s*\d+(?:[\,\.]\d+)?)"
     re3.IgnoreCase = True
     If re3.Test(opis) Then
-        'tu korzystamy z grupy przechwytuj¹cej
+        
         WyodrebnijPrzekroj = NormPrzekrojKey(CStr(re3.Execute(opis)(0).SubMatches(0)))
         Exit Function
     End If
@@ -82,12 +76,7 @@ Public Function WyodrebnijPrzekroj(opis As String) As String
 End Function
 
 
-'================  S £ O W N I K I  RG  (exact + max)  =================
-'
-' BuildDicts(dictExact, dictMax)  ›  True/False
-'   • dictExact  – klucze „kategoria|szczegó³” (np.  kable|5x25,  kor|300)
-'   • dictMax    – maksymalna wartoœæ RG w danej kategorii (np.  kor › 60)
-'=======================================================================
+
 Private Function BuildDicts(ByRef dictExact As Object, _
                             ByRef dictMax As Object) As Boolean
     On Error GoTo Fail
@@ -98,7 +87,7 @@ Private Function BuildDicts(ByRef dictExact As Object, _
     '–– 1. ustal skoroszyt ------------------------------------------------
     Dim wb As Workbook, vCaller As Variant
     On Error Resume Next
-    vCaller = Application.Caller         'Range / pusty / Error
+    vCaller = Application.Caller
     On Error GoTo 0
 
     Select Case TypeName(vCaller)
@@ -106,14 +95,14 @@ Private Function BuildDicts(ByRef dictExact As Object, _
         Case "String": Set wb = ActiveWorkbook
         Case Else:     Set wb = ActiveWorkbook
     End Select
-    If wb Is Nothing Then Exit Function     'nie znaleziono – zwróci False
+    If wb Is Nothing Then Exit Function
 
     '–– 2. arkusz „Stawki” -----------------------------------------------
     Dim ws As Worksheet
     On Error Resume Next
     Set ws = wb.Worksheets(SHEET_STAWKI)
     On Error GoTo 0
-    If ws Is Nothing Then Exit Function     'brak – zwróci False
+    If ws Is Nothing Then Exit Function
 
     '–– 3. zakres danych (tabela lub zwyk³y) ------------------------------
     Dim rng As Range
@@ -146,10 +135,10 @@ Private Function BuildDicts(ByRef dictExact As Object, _
             ''— dictExact: wpisy szczegó³owe -------------------------------
             If InStr(cat, "kabl") > 0 Then
                 '–––– KABLE ––––––––––––––––––––––––––––––––––––––––
-                keyDot = NormPrzekrojKey(nazwa)          'np. 5x2.5
+                keyDot = NormPrzekrojKey(nazwa)
                 If keyDot <> "" Then
                     dictExact(cat & "|" & keyDot) = minVal
-                    keyComma = Replace(keyDot, ".", ",")  '5x2,5
+                    keyComma = Replace(keyDot, ".", ",")  '
                     dictExact(cat & "|" & keyComma) = minVal
                 End If
             
@@ -158,12 +147,12 @@ Private Function BuildDicts(ByRef dictExact As Object, _
                 Dim reW As Object, m As Object
                 Set reW = CreateObject("VBScript.RegExp")
                 reW.Global = True: reW.IgnoreCase = True
-                ' liczba 50–600, za któr¹ NIE stoi kolejna cyfra  (negative-look-ahead)
+                
                 reW.Pattern = "(50|100|200|300|400|500|600)(?!\d)"
                 
                 If reW.Test(nazwa) Then
                     For Each m In reW.Execute(nazwa)
-                        dictExact(cat & "|" & m.SubMatches(0)) = minVal      'np. kor|100
+                        dictExact(cat & "|" & m.SubMatches(0)) = minVal
                     Next m
                 End If
             Else
@@ -178,11 +167,7 @@ Private Function BuildDicts(ByRef dictExact As Object, _
 Fail:
     BuildDicts = False
 End Function
-'=======================================================================
 
-'=============================================================
-' 5) Funkcja arkuszowa – zwraca MINUTY RG (0, gdy brak)
-'=============================================================
 Public Function Roboczogodziny(kategoria As String, opis As String) As Double
     Static dictExact As Object, dictMax As Object
 
@@ -214,7 +199,7 @@ Public Function Roboczogodziny(kategoria As String, opis As String) As Double
     ' 2) KORYTA – szukamy szerokoœci (50-600)
     '-----------------------------------------------------------
     ElseIf InStr(cat, "kor") > 0 Then
-        Dim trayW As String: trayW = GetTrayWidth(opis)   'np. "100"
+        Dim trayW As String: trayW = GetTrayWidth(opis)
         If trayW <> "" Then
             Dim kTray As String: kTray = cat & "|" & trayW
             If dictExact.Exists(kTray) Then
@@ -223,7 +208,7 @@ Public Function Roboczogodziny(kategoria As String, opis As String) As Double
             End If
         End If
 
-    End If   ' <-- UWAGA: zamyka ELSEIF
+    End If
 
     '-----------------------------------------------------------
     ' 3) Fallback – najwy¿sza wartoœæ w kategorii
@@ -254,7 +239,7 @@ Public Sub WstawFormulyRG( _
     ByVal COL_DESC As Long, _
     ByVal FIRST_ROW As Long)
 
-    Const BRAK_RG_COLOR As Long = vbRed    'RGB(255,0,0)
+    Const BRAK_RG_COLOR As Long = vbRed
 
     Dim wb As Workbook: Set wb = ActiveWorkbook
     If wb Is Nothing Then Exit Sub
@@ -277,12 +262,12 @@ Public Sub WstawFormulyRG( _
                 f = "=IFERROR(Roboczogodziny(" & adrCat & "," & adrDesc & "),0)"
 
                 With ws.Cells(r, COL_OUT)
-                    '1) Nie nadpisuj – pisz tylko, gdy brak formu³y i pusto/zero
+                    
                     If (Not .HasFormula) And (Len(.Value2) = 0 Or val(.Value2) = 0) Then
                         .Formula = f
                     End If
 
-                    '2) Koloruj braki (kategoria jest, a wynik = 0)
+                    
                     Dim hasCat As Boolean, isZero As Boolean, isRed As Boolean
                     hasCat = (Len(Trim$(ws.Cells(r, COL_CAT).Value2)) > 0)
                     isZero = (val(.Value2) = 0)
@@ -304,7 +289,6 @@ NextWs:
     MsgBox "Formu³y RG dodane (tylko do pustych/zerowych). Braki oznaczone na czerwono.", _
            vbInformation
 End Sub
-'========================  /modRG  ==========================
 
 
 Public Sub RG_RebuildCache()
@@ -327,9 +311,9 @@ Public Sub RG_RebuildCache()
     End If
 End Sub
 
-'---------------------------------------------------------------
+
 '  SZYBKI PODGL¥D S£OWNIKA  –  TYLKO DO DEBUG
-'---------------------------------------------------------------
+
 
 Public Function RG_DictValue(keyTxt As String) As Variant
     Static dictExact As Object, dictMax As Object

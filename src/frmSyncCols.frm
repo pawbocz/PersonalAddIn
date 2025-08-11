@@ -13,10 +13,10 @@ Attribute VB_GlobalNameSpace = False
 Attribute VB_Creatable = False
 Attribute VB_PredeclaredId = True
 Attribute VB_Exposed = False
-'===========================  frmSyncCols  =========================
+
 Option Explicit
 
-'--  zwracane do makra  --------------------------------------------
+
 Public FormOK As Boolean
 Private mLVCena  As Long, mLVWart  As Long
 Private mSRCCena As Long, mSRCWart As Long
@@ -25,34 +25,32 @@ Public Property Get LV_Cena() As Long:   LV_Cena = mLVCena:   End Property
 Public Property Get LV_Wart() As Long:   LV_Wart = mLVWart:   End Property
 Public Property Get SRC_Cena() As Long:  SRC_Cena = mSRCCena: End Property
 Public Property Get SRC_Wart() As Long:  SRC_Wart = mSRCWart: End Property
-'-------------------------------------------------------------------
 
-'============  P R I V A T E   R O U T I N E S  ====================
+
 
 Private Sub UserForm_Initialize()
     On Error Resume Next
     If Application.PixelsPerInch <> 96 Then _
         Me.Zoom = 100 * Application.PixelsPerInch / 96
     On Error GoTo 0
-    '… ewentualna reszta kodu …
+ 
 End Sub
 
-'-- zamienia "A" › 1,  "Z" › 26,  "AA" › 27,  itd.
+
 Private Function ColIndex(txt As String) As Long
     Dim s As String: s = UCase$(Trim$(txt))
     If s = "" Then ColIndex = 0: Exit Function
-    
-    'jeœli liczba: zwróæ j¹ wprost
+
     If IsNumeric(s) Then
         ColIndex = CLng(s)
         Exit Function
     End If
     
-    'jeœli litery: policz 26-kowy system
+  
     Dim i As Long, n As Long
     For i = 1 To Len(s)
         Dim ch As Integer: ch = Asc(Mid$(s, i, 1))
-        If ch < 65 Or ch > 90 Then     'nie A-Z
+        If ch < 65 Or ch > 90 Then
             ColIndex = 0: Exit Function
         End If
         n = n * 26 + (ch - 64)
@@ -60,7 +58,6 @@ Private Function ColIndex(txt As String) As Long
     ColIndex = n
 End Function
 
-'============  E V E N T S  =======================================
 
 Private Sub cmdOK_Click()
     Dim ok As Boolean
@@ -84,6 +81,6 @@ Private Sub cmdCancel_Click()
     FormOK = False
     Me.Hide
 End Sub
-'==================================================================
+
 
 

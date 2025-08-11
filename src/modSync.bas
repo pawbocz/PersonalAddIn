@@ -1,12 +1,12 @@
 Attribute VB_Name = "modSync"
-'=====================  modSync  =================================
+
 Option Explicit
 
 
 Sub SyncLVtoSource()
 
-    Const COL_ID As Long = 1          'ukryta kolumna A z ID
-    Const HDR_ROW_LV As Long = 8      'pierwszy wiersz tabeli w LV
+    Const COL_ID As Long = 1
+    Const HDR_ROW_LV As Long = 8
 
     Dim wbLV As Workbook:  Set wbLV = ActiveWorkbook
     If wbLV Is Nothing Then Exit Sub
@@ -45,7 +45,7 @@ Sub SyncLVtoSource()
     colLV_Cena = frmSyncCols.LV_Cena
     colLV_Wart = frmSyncCols.LV_Wart
     colSRC_Cena = frmSyncCols.SRC_Cena
-    colSRC_Wart = frmSyncCols.SRC_Wart     '––> wszystkie >0 bo sprawdzane w formularzu
+    colSRC_Wart = frmSyncCols.SRC_Wart
 
     '–––– 4. synchronizacja dla ka¿dej pary –––––––––––––––––––––
     Application.ScreenUpdating = False
@@ -122,6 +122,3 @@ ContinuePair:
            "Brak dopasowania ID: " & missCnt & vbCrLf & _
            "Duplikaty ID: " & dupCnt, vbInformation
 End Sub
-'================================================================
-
-

@@ -15,11 +15,11 @@ Attribute VB_PredeclaredId = True
 Attribute VB_Exposed = False
 Option Explicit
 
-'=== ZMIENNE PRYWATNE ==========================================
-Private pFormOK        As Boolean          'status OK/Cancel
-Private pSelected      As Collection       'zwracane arkusze
 
-'=== W£AŒCIWOŒCI PUBLICZNE =====================================
+Private pFormOK        As Boolean
+Private pSelected      As Collection
+
+
 Public Property Get FormOK() As Boolean
     FormOK = pFormOK
 End Property
@@ -30,8 +30,7 @@ End Property
 
 
 
-'=== METODA INIT  (wo³ana z modu³u) =============================
-'  Przeka¿ kolekcjê arkuszy (np. ActiveWorkbook.Worksheets)
+
 Public Sub Init(wsCol As Sheets)
     
     Dim sh As Worksheet
@@ -42,11 +41,11 @@ Public Sub Init(wsCol As Sheets)
     Next sh
     
     If Me.lstSheets.ListCount > 0 Then _
-        Me.lstSheets.Selected(0) = True      'zaznacz pierwszy
+        Me.lstSheets.Selected(0) = True
     
 End Sub
 
-'=== PRZYCISK  OK  =============================================
+
 Private Sub cmdOK_Click()
 
     Dim i As Long
@@ -67,13 +66,13 @@ Private Sub cmdOK_Click()
     Me.Hide
 End Sub
 
-'=== PRZYCISK  Anuluj  =========================================
+
 Private Sub cmdCancel_Click()
     pFormOK = False
     Me.Hide
 End Sub
 
-'=== ZA£ADOWANIE FORMA (opc.) ==================================
+
 Private Sub UserForm_Initialize()
     On Error Resume Next
     If Application.PixelsPerInch <> 96 Then _

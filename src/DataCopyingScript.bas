@@ -1,6 +1,6 @@
 Attribute VB_Name = "DataCopyingScript"
 Sub KopiujDaneDoPlikuLV()
-    Const START_ROW_TGT As Long = 8        ' <-- zawsze zapis od 8
+    Const START_ROW_TGT As Long = 8
 
     Dim wbSrc As Workbook, wsSrc As Worksheet
     Dim wbTgt As Workbook, wsTgt As Worksheet
@@ -55,7 +55,7 @@ Sub KopiujDaneDoPlikuLV()
     jednColTgt = Columns(DataCopy.JednCol).Column
     przedmColTgt = Columns(DataCopy.PrzedmCol).Column
     
-    '-- wyczyœæ stare dane od wiersza 8 w dó³ we wskazanych kolumnach
+
     wsTgt.Range(wsTgt.Cells(START_ROW_TGT, idColTgt), wsTgt.Cells(wsTgt.Rows.Count, idColTgt)).ClearContents
     wsTgt.Range(wsTgt.Cells(START_ROW_TGT, opisColTgt), wsTgt.Cells(wsTgt.Rows.Count, opisColTgt)).ClearContents
     wsTgt.Range(wsTgt.Cells(START_ROW_TGT, jednColTgt), wsTgt.Cells(wsTgt.Rows.Count, jednColTgt)).ClearContents
@@ -74,20 +74,19 @@ Sub KopiujDaneDoPlikuLV()
         End If
     Next i
 
-'============ NOWA CZÊŒÆ – RAMKI ALL-BORDERS ========================
+
 
 Dim firstCol As Long, lastCol As Long
 Dim pasteRange As Range
 
-' minimalna i maksymalna kolumna skopiowanego zakresu
+
 firstCol = WorksheetFunction.min(idColTgt, opisColTgt, jednColTgt, przedmColTgt)
 lastCol = WorksheetFunction.Max(idColTgt, opisColTgt, jednColTgt, przedmColTgt)
 
-' zakres od wiersza 8 do ostatniego wklejonego (writeRow-1)
 Set pasteRange = wsTgt.Range(wsTgt.Cells(START_ROW_TGT, firstCol), _
                               wsTgt.Cells(writeRow - 1, lastCol))
 
-Call UstawRamkiAll(pasteRange)      ' cienkie ci¹g³e obramowanie
+Call UstawRamkiAll(pasteRange)
 
 
     wbTgt.Activate
@@ -97,10 +96,10 @@ Call UstawRamkiAll(pasteRange)      ' cienkie ci¹g³e obramowanie
     
     
     MsgBox "Dane nadpisane od wiersza " & START_ROW_TGT & ".", vbInformation
-    ' wbTgt.Close SaveChanges:=True   ' odkomentuj, jeœli chcesz od razu zapisaæ i zamkn¹æ
+
 End Sub
 
-'--- pomocnicza ----------------------------------------------------
+
 Function ZnajdzKolumneWRegion(tbl As Range, naglowek As String) As Long
     Dim c As Range
     For Each c In tbl.Rows(1).Cells
@@ -116,14 +115,14 @@ End Function
 Sub UstawRamkiAll(rng As Range)
 
     With rng.Borders
-        '--- wszystkie linie wewn¹trz -----------------------------
+ 
         .LineStyle = xlContinuous
         .Weight = xlThin
         
-        '--- krawêdzie zewnêtrzne – wymuœ ponownie ----------------
+     
         .Item(xlEdgeLeft).LineStyle = xlContinuous
         .Item(xlEdgeTop).LineStyle = xlContinuous
-        .Item(xlEdgeRight).LineStyle = xlContinuous    '<<<< PRAWA
+        .Item(xlEdgeRight).LineStyle = xlContinuous
         .Item(xlEdgeBottom).LineStyle = xlContinuous
         
         .Item(xlEdgeLeft).Weight = xlThin
@@ -132,21 +131,16 @@ Sub UstawRamkiAll(rng As Range)
         .Item(xlEdgeBottom).Weight = xlThin
     End With
 End Sub
-'====================================================================
 
-
-
-
-'================================================================
 Sub PrepareSourceData()
 
     '---- 1. PARAMETRY Z FORMULARZA -----------------------------
     Dim frm As New frmPrepSettings
     frm.Show
-    If Not frm.FormOK Then Exit Sub        'u¿ytkownik Cancel
+    If Not frm.FormOK Then Exit Sub
     
-    Dim hdrRow       As Long: hdrRow = frm.hdrRow                'wiersz nag³ówków
-    Dim firstDataRow As Long: firstDataRow = frm.FirstData       'pierwszy wiersz danych
+    Dim hdrRow       As Long: hdrRow = frm.hdrRow
+    Dim firstDataRow As Long: firstDataRow = frm.FirstData
     Dim colLp        As Long: colLp = frm.colLp
     Dim colOpis      As Long: colOpis = frm.colOpis
     Dim colJedn      As Long: colJedn = frm.colJedn
@@ -159,7 +153,7 @@ Sub PrepareSourceData()
     If LCase$(Trim$(ws.Cells(hdrRow, 1).Value)) <> "id" Then
         ws.Columns(1).Insert Shift:=xlToRight
         ws.Cells(hdrRow, 1).Value = "ID"
-        'po wstawieniu kol. A przesuwamy liczniki w prawo
+    
         colLp = colLp + 1: colOpis = colOpis + 1
         colJedn = colJedn + 1: colPrzedm = colPrzedm + 1
     End If
@@ -194,7 +188,7 @@ Sub PrepareSourceData()
         If coreEmpty Then Exit Do
         r = r + 1
     Loop
-    lastRow = r - 1                       'ostatni rzeczywisty wiersz
+    lastRow = r - 1
     
     If lastRow < firstDataRow Then
         MsgBox "Nie znaleziono danych pod nag³ówkami.", vbInformation
@@ -221,10 +215,8 @@ Sub PrepareSourceData()
     Application.ScreenUpdating = True
     MsgBox "Arkusz ustandaryzowany – ID ponumerowane do wiersza " & lastRow & ".", vbInformation
 End Sub
-'================================================================
 
 
-'===========  P R Z E N O S Z E N I E   K O L U M N Y  =============
 Private Sub MoveCol(ws As Worksheet, srcIndex As Long, tgtIndex As Long)
     If srcIndex = tgtIndex Then Exit Sub
     ws.Columns(srcIndex).Cut
