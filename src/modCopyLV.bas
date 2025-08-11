@@ -19,6 +19,27 @@ Public gTemplateLV As Worksheet       'pierwszy arkusz „LV…” lub LV_SZABLON
 '===============================================================
 
 
+'=== HELPER: wgrywa top 1..8 z szablonu bez schowka, plus szer. i wys. ===
+Private Sub ApplyTemplateTop8(ByVal wsTgt As Worksheet)
+    'zakres: A1:AU8 (47 kolumn)
+    gTemplateLV.Range("A1:AU8").Copy Destination:=wsTgt.Range("A1")
+
+    'szerokoœci kolumn 1..47 (A:AU)
+    Dim c As Long
+    For c = 1 To 47
+        wsTgt.Columns(c).ColumnWidth = gTemplateLV.Columns(c).ColumnWidth
+    Next c
+
+    'wysokoœci wierszy 1..8
+    Dim r As Long
+    For r = 1 To 8
+        wsTgt.Rows(r).RowHeight = gTemplateLV.Rows(r).RowHeight
+    Next r
+End Sub
+
+
+
+
 '============================  M A I N  =========================
 Sub MainCopy()
 
@@ -28,7 +49,7 @@ Sub MainCopy()
     
     Dim pathTgt As Variant
     pathTgt = Application.GetOpenFilename( _
-              "Pliki Excel (*.xls*;*.xlsm;*.xltx), *.xls*;*.xlsm;*.xltx")
+              "Pliki Excel (*.xls*;*.xlsm;*.xltx;*.xltm), *.xls*;*.xlsm;*.xltx;*.xltm")
     If pathTgt = False Then Exit Sub
     
     Set gTargetWB = Workbooks.Open(pathTgt)
@@ -142,7 +163,7 @@ Private Sub CopyOnePair( _
 
     'Jeœli to NIE jest œwie¿o skopiowany arkusz, upewnij siê, ¿e ma
     'ukryt¹ kolumnê A=ID.  Szablon ma j¹ ju¿ w sobie, wiêc pomijamy.
-    If Not newSheet Then EnsureHiddenIDColumn wsTgt
+    
 
 
     '¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦
@@ -177,24 +198,24 @@ Private Sub CopyOnePair( _
     End If
 
 
-    '¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦
-    '4.  Kopiuj nag³ówki/formu³y z szablonu (tylko gdy arkusz istnia³)
-    '¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦
-    If Not newSheet And UCase$(Left$(wsTgt.Name, 2)) = "LV" Then
-        gTemplateLV.Rows("1:8").Copy
-        With wsTgt.Rows("1:8")
-            .PasteSpecial xlPasteAllUsingSourceTheme
-            .PasteSpecial xlPasteColumnWidths
-        End With
-        Application.CutCopyMode = False
+    '4) bezwarunkowo wgraj top z szablonu (nie polegaj na schowku)
+    If UCase$(Left$(wsTgt.Name, 2)) = "LV" Then
+        'opcjonalna os³ona: nie nadpisuj samego szablonu
+        If wsTgt.CodeName <> gTemplateLV.CodeName Then
+            ApplyTemplateTop8 wsTgt
+        End If
     End If
+    
+    '*** TERAZ zadbaj o kolumnê ID (po wgraniu topu) ***
+    EnsureHiddenIDColumn wsTgt
+    
 
 
     '¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦
     '5.  Czyszczenie starych danych
     '¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦
-    wsTgt.Range(wsTgt.Cells(START_ROW_TGT, COL_HID_ID), _
-                wsTgt.Cells(wsTgt.Rows.Count, COL_PRZEM_TGT)).ClearContents
+    wsTgt.Range(wsTgt.Cells(START_ROW_TGT + 1, COL_HID_ID), _
+            wsTgt.Cells(wsTgt.Rows.Count, COL_PRZEM_TGT)).ClearContents
 
     Const LAST_COL As Long = 47           'AU
     wsTgt.Range(wsTgt.Cells(START_ROW_TGT + 1, COL_PRZEM_TGT + 1), _
