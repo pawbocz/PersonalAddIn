@@ -1,12 +1,19 @@
 Param(
-    # Lista plików do eksportu. Każdy ma osobny katalog src, więc nic się nie miesza.
-    [Parameter(Mandatory = $false)]
-    [array]$targets = @(
-        @{ xlam = (Join-Path $PSScriptRoot '..\bin\PersonalAddIn.xlam'); out = (Join-Path $PSScriptRoot '..\src\PersonalAddIn') }
-        # <-- DODAJ TU NOWY PLIK, np.:
-        # @{ xlam = (Join-Path $PSScriptRoot '..\bin\MegaLV.xlsm');     out = (Join-Path $PSScriptRoot '..\src\QF_CopyToLV') }
-    )
+    # Opcjonalnie: własna lista targetów przekazana z zewnątrz.
+    # Jeśli pusta, skrypt sam zbuduje listę dla PersonalAddIn.xlam i QF_CopyToLV.xlam.
+    [array]$targets
 )
+
+# --- Ustal bazową ścieżkę na podstawie położenia skryptu ---
+$Base = Split-Path -Parent $PSCommandPath
+
+# --- Domyślne targety, jeśli nie podano w Param ---
+if (-not $targets -or $targets.Count -eq 0) {
+    $targets = @(
+        @{ xlam = (Join-Path $Base '..\bin\PersonalAddIn.xlam'); out = (Join-Path $Base '..\src\PersonalAddIn') },
+        @{ xlam = (Join-Path $Base '..\bin\QF_CopyToLV.xlam');   out = (Join-Path $Base '..\src\QF_CopyToLV') }
+    )
+}
 
 $excel = New-Object -ComObject Excel.Application
 $excel.Visible = $false
@@ -17,17 +24,22 @@ try {
         $xlam = $t.xlam
         $out  = $t.out
 
-        if (-not (Test-Path $xlam)) { Write-Error "Nie znaleziono pliku: $xlam"; throw "Brak pliku" }
-        if (-not (Test-Path $out)) { New-Item -ItemType Directory -Force -Path $out | Out-Null }
+        if (-not (Test-Path $xlam)) {
+            Write-Error "Nie znaleziono pliku: $xlam"
+            throw "Brak pliku"
+        }
+        if (-not (Test-Path $out)) {
+            New-Item -ItemType Directory -Force -Path $out | Out-Null
+        }
 
-        # odłącz dodatek, jeśli załadowany w tej instancji
+        # Odłącz dodatek, jeśli załadowany w tej instancji
         $addinName = [IO.Path]::GetFileName($xlam)
         $addinObj  = $excel.AddIns | Where-Object { $_.Name -eq $addinName }
         if ($addinObj) { $addinObj.Installed = $false }
 
         $wb = $excel.Workbooks.Open($xlam)
 
-        # wyczyść katalog docelowy TYLKO dla tego projektu
+        # Wyczyść katalog docelowy dla tego projektu
         Get-ChildItem -Path $out -File -ErrorAction SilentlyContinue | Remove-Item -Force -ErrorAction SilentlyContinue
 
         foreach ($comp in $wb.VBProject.VBComponents) {
@@ -42,11 +54,11 @@ try {
         }
 
         $wb.Close($false)
-        [System.Runtime.InteropServices.Marshal]::ReleaseComObject($wb) | Out-Null
+        [void][System.Runtime.InteropServices.Marshal]::ReleaseComObject($wb)
     }
 }
 finally {
     $excel.Quit()
-    [System.Runtime.InteropServices.Marshal]::ReleaseComObject($excel) | Out-Null
+    [void][System.Runtime.InteropServices.Marshal]::ReleaseComObject($excel)
     [GC]::Collect(); [GC]::WaitForPendingFinalizers()
 }

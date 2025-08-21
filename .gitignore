@@ -14,3 +14,9 @@ bin/
 # -- IDE / system --------------------------------
 .vscode/
 Thumbs.db
+
+
+
+src/*.bas
+src/*.cls
+src/*.frm
