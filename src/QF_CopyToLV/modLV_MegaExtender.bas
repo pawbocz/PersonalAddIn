@@ -66,7 +66,7 @@ Public Sub RozszerzFormulyLVMega(ByVal wsLV As Worksheet)
 
     ' docelowa_kolumna › Ÿród³owa_kolumna
     ' G pokazuje sumê z H; J pokazuje sumê z J; AH..AM mapowanie specjalne; AO..AU sumuj¹ siebie
-    sumMap = Array(Array(7, 8), Array(10, 10), Array(34, 34), Array(35, 35), Array(36, 45), Array(37, 39), Array(38, 46), Array(39, 47), Array(41, 41), Array(42, 42), Array(43, 43), Array(44, 44), Array(45, 45), Array(46, 46), Array(47, 47))
+    sumMap = Array(Array(7, 7), Array(10, 10), Array(34, 34), Array(35, 35), Array(36, 45), Array(37, 39), Array(38, 46), Array(39, 47), Array(41, 41), Array(42, 42), Array(43, 43), Array(44, 44), Array(45, 45), Array(46, 46), Array(47, 47))
 
     For k = LBound(sumMap) To UBound(sumMap)
         tgtCol = sumMap(k)(0)
@@ -74,8 +74,14 @@ Public Sub RozszerzFormulyLVMega(ByVal wsLV As Worksheet)
         With wsLV.Cells(sumRow, tgtCol)
             .FormulaR1C1 = "=SUM(R" & DATA_FIRST & "C" & srcCol & ":R" & lastDataRow & "C" & srcCol & ")"
             .Font.Bold = True
+            If tgtCol = 38 Then
+                .NumberFormat = "#,##0.00 [$€-x-euro1]"
+            Else
+                .NumberFormat = "#,##0.00 $"
+            End If
         End With
     Next k
+
 
     ' etykiety "Razem:" (dla G i J)
     wsLV.Cells(sumRow, 6).Value = "Razem:"   ' F – opis dla sumy w G (7)
@@ -135,6 +141,17 @@ Public Sub RozszerzFormulyLVMega(ByVal wsLV As Worksheet)
         .Cells(valRow, 38).Formula = "=" & .Cells(sumRow, 46).Address
         .Cells(valRow, 39).Formula = "=" & .Cells(sumRow, 47).Address
     End With
+    ' 6d+. format waluty dla wiersza PODSUMOWANIE
+    With wsLV
+        .Cells(sumRow, 46).NumberFormat = "#,##0.00 [$€-x-euro1]"
+        .Cells(valRow, 38).NumberFormat = "#,##0.00 [$€-x-euro1]" ' AL = EUR
+        .Cells(valRow, 34).NumberFormat = "#,##0.00 $"            ' AH = PLN
+        .Cells(valRow, 35).NumberFormat = "#,##0.00 $"
+        .Cells(valRow, 36).NumberFormat = "#,##0.00 $"
+        .Cells(valRow, 37).NumberFormat = "#,##0.00 $"
+        .Cells(valRow, 39).NumberFormat = "#,##0.00 $"
+    End With
+
 
     ' 6e. ramki wokó³ sekcji PODSUMOWANIE
     Set sumTbl = wsLV.Range(wsLV.Cells(hdrRow, 34), wsLV.Cells(valRow, 39))

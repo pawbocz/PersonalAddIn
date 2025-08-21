@@ -19,7 +19,7 @@ Public FormOK As Boolean
 Public OutCol As Long
 Public CatCol As Long
 Public DescCol As Long
-Public FirstRow As Long
+Public firstRow As Long
 
 Private Sub TextBox1_Change()
 
@@ -52,7 +52,7 @@ Private Sub cmdOK_Click()
         Exit Sub
     End If
 
-    OutCol = oCol: CatCol = cCol: DescCol = dCol: FirstRow = fRow
+    OutCol = oCol: CatCol = cCol: DescCol = dCol: firstRow = fRow
     FormOK = True
     Me.Hide
 End Sub

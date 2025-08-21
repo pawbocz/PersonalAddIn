@@ -122,7 +122,7 @@ End Sub
 
 
 
-Sub NakladanieSegmentowychRamek(ws As Worksheet, FirstRow As Long, lastRow As Long)
+Sub NakladanieSegmentowychRamek(ws As Worksheet, firstRow As Long, lastRow As Long)
 
     Dim segments As Variant, s As Variant
     segments = Array(Array(7, 8), _
@@ -131,7 +131,7 @@ Sub NakladanieSegmentowychRamek(ws As Worksheet, FirstRow As Long, lastRow As Lo
         Array(42, 48))
         
     For Each s In segments
-        With ws.Range(ws.Cells(FirstRow, s(0)), ws.Cells(lastRow, s(1))).Borders
+        With ws.Range(ws.Cells(firstRow, s(0)), ws.Cells(lastRow, s(1))).Borders
             .LineStyle = xlContinuous
             .Weight = xlThin
         End With

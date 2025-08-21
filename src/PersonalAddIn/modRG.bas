@@ -2,7 +2,8 @@ Attribute VB_Name = "modRG"
 '==========================  modRG  ==========================
 Option Explicit
 
-
+Private gDictExact As Object
+Private gDictMax   As Object
 
 Private Const SHEET_STAWKI As String = "Stawki"
 Private Const COL_NAZWA    As Long = 1
@@ -31,7 +32,7 @@ Private Function GetTrayWidth(txt As String) As String
     reW.Global = False: reW.IgnoreCase = True
     reW.Pattern = "(?:\b[kd]\s*(\d{2,3})\b)|(?:\b(\d{2,3})\s*mm\b)"
 
-    If reW.Test(txt) Then
+    If reW.test(txt) Then
         Dim m As Object: Set m = reW.Execute(txt)(0)
         Dim numTxt As String
         If m.SubMatches(0) <> "" Then
@@ -52,7 +53,7 @@ Public Function WyodrebnijPrzekroj(opis As String) As String
     Dim re3 As Object: Set re3 = CreateObject("VBScript.RegExp")
     re3.Pattern = "^\s*\d+\s*[x×*]\s*(\d+\s*[x×*]\s*\d+(?:[\,\.]\d+)?)"
     re3.IgnoreCase = True
-    If re3.Test(opis) Then
+    If re3.test(opis) Then
         
         WyodrebnijPrzekroj = NormPrzekrojKey(CStr(re3.Execute(opis)(0).SubMatches(0)))
         Exit Function
@@ -61,7 +62,7 @@ Public Function WyodrebnijPrzekroj(opis As String) As String
     Dim re As Object: Set re = CreateObject("VBScript.RegExp")
     re.Pattern = "(\d+\s*[x×*]\s*\d+(?:[\,\.]\d+)?)|(\bdn\d+\b)"
     re.IgnoreCase = True
-    If re.Test(opis) Then
+    If re.test(opis) Then
         Dim m As Object: Set m = re.Execute(opis)(0)
         Dim raw As String
         If m.SubMatches.Count > 0 And Len(m.SubMatches(0)) > 0 Then
@@ -150,7 +151,7 @@ Private Function BuildDicts(ByRef dictExact As Object, _
                 
                 reW.Pattern = "(50|100|200|300|400|500|600)(?!\d)"
                 
-                If reW.Test(nazwa) Then
+                If reW.test(nazwa) Then
                     For Each m In reW.Execute(nazwa)
                         dictExact(cat & "|" & m.SubMatches(0)) = minVal
                     Next m
@@ -169,11 +170,11 @@ Fail:
 End Function
 
 Public Function Roboczogodziny(kategoria As String, opis As String) As Double
-    Static dictExact As Object, dictMax As Object
+    Application.Volatile True  'pozwala przeliczyæ przy Calculate/CalculateFull
 
-    '-- pierwszy raz w sesji: zbuduj s³owniki ------------------
-    If dictExact Is Nothing Then
-        If Not BuildDicts(dictExact, dictMax) Then
+    'Zbuduj cache przy pierwszym wywo³aniu lub po rêcznym resetcie
+    If gDictExact Is Nothing Or gDictMax Is Nothing Then
+        If Not BuildDicts(gDictExact, gDictMax) Then
             Roboczogodziny = 0
             Exit Function
         End If
@@ -182,43 +183,38 @@ Public Function Roboczogodziny(kategoria As String, opis As String) As Double
     Dim cat As String: cat = CleanTxt(kategoria)
     If cat = "" Then Roboczogodziny = 0: Exit Function
 
-    '-----------------------------------------------------------
-    ' 1) KABLE – szukamy dok³adnego przekroju (5x2,5 …)
-    '-----------------------------------------------------------
+    '1) kable – dok³adny przekrój
     If InStr(cat, "kabl") > 0 Then
         Dim pr As String: pr = WyodrebnijPrzekroj(opis)
         If pr <> "" Then
             Dim k As String: k = cat & "|" & pr
-            If dictExact.Exists(k) Then
-                Roboczogodziny = dictExact(k)
+            If gDictExact.Exists(k) Then
+                Roboczogodziny = gDictExact(k)
                 Exit Function
             End If
         End If
-
-    '---------------------------------------------------------
-    ' 2) KORYTA – szukamy szerokoœci (50-600)
-    '-----------------------------------------------------------
-    ElseIf InStr(cat, "kor") > 0 Then
-        Dim trayW As String: trayW = GetTrayWidth(opis)
-        If trayW <> "" Then
-            Dim kTray As String: kTray = cat & "|" & trayW
-            If dictExact.Exists(kTray) Then
-                Roboczogodziny = dictExact(kTray)
-                Exit Function
-            End If
-        End If
-
     End If
 
-    '-----------------------------------------------------------
-    ' 3) Fallback – najwy¿sza wartoœæ w kategorii
-    '-----------------------------------------------------------
-    If dictMax.Exists(cat) Then
-        Roboczogodziny = dictMax(cat)
+    '2) koryta – dopasowanie po szerokoœci (np. kor|100)
+    If cat = "kor" Or cat = "kor_pokr" Then
+        Dim w As String: w = GetTrayWidth(opis)
+        If w <> "" Then
+            Dim kk As String: kk = cat & "|" & w
+            If gDictExact.Exists(kk) Then
+                Roboczogodziny = gDictExact(kk)
+                Exit Function
+            End If
+        End If
+    End If
+
+    '3) fallback – maksimum dla kategorii
+    If gDictMax.Exists(cat) Then
+        Roboczogodziny = gDictMax(cat)
     Else
         Roboczogodziny = 0
     End If
 End Function
+
 
 
 
@@ -230,7 +226,7 @@ Public Sub WstawFormulyRG_Ask()
     frm.Show
     If Not frm.FormOK Then Exit Sub
 
-    WstawFormulyRG frm.OutCol, frm.CatCol, frm.DescCol, frm.FirstRow
+    WstawFormulyRG frm.OutCol, frm.CatCol, frm.DescCol, frm.firstRow
 End Sub
 
 Public Sub WstawFormulyRG( _
@@ -291,25 +287,27 @@ NextWs:
 End Sub
 
 
-Public Sub RG_RebuildCache()
-    '--- 1. skasuj dotychczasowe cache ---
-    Static dictExact As Object, dictMax As Object
-    Set dictExact = Nothing
-    Set dictMax = Nothing
+Public Sub RG_RebuildCache(Optional ByVal Recalculate As Boolean = True)
+    '1) wyczyœæ cache modu³owy
+    Set gDictExact = Nothing
+    Set gDictMax = Nothing
 
-    '--- 2. zbuduj ponownie (korzystamy z Twojej BuildDicts) ---
+    '2) zbuduj ponownie ze „Stawek”
     Dim ok As Boolean
-    ok = BuildDicts(dictExact, dictMax)
+    ok = BuildDicts(gDictExact, gDictMax)
+
+    '3) ewentualnie przelicz wszystkie formu³y z UDF
+    If Recalculate Then Application.CalculateFull
 
     If ok Then
-        MsgBox "S³ownik roboczogodzin przebudowany." & vbCrLf & _
-               "• dok³adnych kluczy: " & dictExact.Count & vbCrLf & _
-               "• kategorii (MAX):  " & dictMax.Count, vbInformation
+        MsgBox "S³ownik roboczogodzin odœwie¿ony." & vbCrLf & _
+               "• exact: " & gDictExact.Count & vbCrLf & _
+               "• max/kategoria: " & gDictMax.Count, vbInformation
     Else
-        MsgBox "Nie uda³o siê odœwie¿yæ s³ownika (brak danych w arkuszu 'Stawki'?).", _
-               vbExclamation
+        MsgBox "Nie uda³o siê odœwie¿yæ s³ownika (sprawdŸ arkusz 'Stawki').", vbExclamation
     End If
 End Sub
+
 
 
 '  SZYBKI PODGL¥D S£OWNIKA  –  TYLKO DO DEBUG
