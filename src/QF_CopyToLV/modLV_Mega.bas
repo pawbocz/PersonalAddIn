@@ -12,7 +12,7 @@ Private Const SRC_COL_CENA   As Long = 11  'K  cena zakupu
 Private Const SRC_COL_WAL    As Long = 12  'L  waluta
 Private Const SRC_COL_RABAT  As Long = 13  'M  rabat %
 Private Const SRC_COL_CENAR  As Long = 14  'N  cena jedn. z rabatem
-Private Const SRC_COL_RG_H   As Long = 16  'P  iloœæ r-g (w godzinach)
+Private Const SRC_COL_RG_H   As Long = 17  'P  iloœæ r-g (w godzinach)
 Private Const SRC_FIRST_DATA As Long = 18  '17 = nag³ówki, dane od 18
 
 '--- CEL = LV **bez ID** ---
@@ -76,7 +76,15 @@ Public Sub BuildMegaLV_ToTarget()
     End If
 
     '–– 3) wyczyœæ dane (od 9 w dó³) ––
-    wsOut.Rows((TGT_FIRST_ROW + 1) & ":" & wsOut.Rows.Count).ClearContents
+    Dim rngClear As Range
+   
+    Set rngClear = Union( _
+        wsOut.Range(wsOut.Cells(9, 2), wsOut.Cells(wsOut.Rows.Count, 5)), _
+        wsOut.Range(wsOut.Cells(9, 8), wsOut.Cells(wsOut.Rows.Count, 15)), _
+        wsOut.Range(wsOut.Cells(9, 17), wsOut.Cells(wsOut.Rows.Count, 47)) _
+    )
+    rngClear.ClearContents
+
 
 
 
@@ -89,7 +97,7 @@ Public Sub BuildMegaLV_ToTarget()
     Do While Len(Trim$(wsRazem.Cells(r, 1).Value2)) > 0
         Dim tabName As String, include As Long
         tabName = CStr(wsRazem.Cells(r, 1).Value2)          'np. b-2 lub 2
-        include = CLng(val(wsRazem.Cells(r, 2).Value2))      '0/1 (kol. B)
+        include = CLng(Val(wsRazem.Cells(r, 2).Value2))      '0/1 (kol. B)
 
         If include = 1 Then
             Dim wsSys As Worksheet
@@ -230,23 +238,24 @@ Private Function AppendSystemRows(wsOut As Worksheet, wsSrc As Worksheet, ByVal 
         If cena > 0 Then
             basePrice = cena
             fromCenaR = False
-            If rab > 0 Then
+            If rab <> 0 Then
                 With wsOut.Cells(wOut, TGT_COL_RABAT)
-                    .Value = rab                ' np. 0.2
-                    .NumberFormat = "0.00%"     ' 20,00%
+                    .Value = rab            ' np. -0.04
+                    .NumberFormat = "0.00%" ' poka¿e -4,00%
                 End With
             Else
                 wsOut.Cells(wOut, TGT_COL_RABAT).ClearContents
             End If
         ElseIf cenaR > 0 Then
             basePrice = cenaR
-            fromCenaR = True                   ' N – ju¿ w PLN, nie przeliczamy
+            fromCenaR = True
             wsOut.Cells(wOut, TGT_COL_RABAT).ClearContents
         Else
             basePrice = 0
             fromCenaR = False
             wsOut.Cells(wOut, TGT_COL_RABAT).ClearContents
         End If
+        
 
         ' --- ZAWSZE: reset stylu/komentarzy w cenach ---
         With wsOut.Cells(wOut, TGT_COL_CENA_PLN)
@@ -318,8 +327,14 @@ Private Function AppendSystemRows(wsOut As Worksheet, wsSrc As Worksheet, ByVal 
             wsOut.Cells(wOut, TGT_COL_CENA_EUR).ClearContents
         End If
 
-        ' --- RG w minutach ---
-        If rgH > 0 Then wsOut.Cells(wOut, TGT_COL_RG_MIN).Value = rgH * 60
+        ' --- RG w minutach * stawka z K$3 ---
+        If rgH > 0 Then
+            Dim rgLit As String
+            rgLit = Replace(CStr(rgH), Application.International(xlDecimalSeparator), ".") ' przecinek -> kropka
+            wsOut.Cells(wOut, TGT_COL_RG_MIN).Formula = "=(" & rgLit & "/60)*" & wsOut.Range("K3").Address(RowAbsolute:=True, ColumnAbsolute:=True)
+        End If
+
+
 
         wOut = wOut + 1
         r = r + 1
@@ -345,20 +360,37 @@ Private Function ValD(v As Variant) As Double
     s = Replace(s, " ", "")
     s = Replace(s, Chr(160), "")
     s = Replace(s, ",", ".")
-    ValD = val(s)
+    ValD = Val(s)
 End Function
 
 Private Function ValPercent(v As Variant) As Double
     Dim s As String: s = CStr(v)
+    ' wyczyœæ spacje (w tym NBSP) i nawiasy ksiêgowe
     s = Replace(s, " ", "")
     s = Replace(s, Chr(160), "")
+    Dim isNeg As Boolean
+    If InStr(s, "(") > 0 And InStr(s, ")") > 0 Then isNeg = True
+    s = Replace(s, "(", "")
+    s = Replace(s, ")", "")
+
+    ' usuñ znak % i ustaw kropkê jako separator
     s = Replace(s, "%", "")
     s = Replace(s, ",", ".")
-    Dim x As Double: x = val(s)
-    If x > 1 Then x = x / 100#
+
+    If s = "" Or s = "." Or s = "-" Then
+        ValPercent = 0#
+        Exit Function
+    End If
+
+    Dim x As Double: x = Val(s)
+    If isNeg Then x = -Abs(x)
+
+    ' DZIEL PRZEZ 100 tak¿e dla wartoœci ujemnych
+    If Abs(x) > 1 Then x = x / 100#
+
     ValPercent = x
 End Function
-'===============================================================
+
 
 '----------------------------------------------
 '  Rozszerzanie formu³/formatów w arkuszu LV

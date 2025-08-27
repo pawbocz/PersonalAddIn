@@ -6,11 +6,13 @@ Public Sub RozszerzFormulyLVMega(ByVal wsLV As Worksheet)
     If Left$(wsLV.Name, 2) <> "LV" Then Exit Sub
 
     ' --- sta³e uk³adu ---
-    Const PROTO_ROW  As Long = 8      ' wiersz wzorcowy (jak w starym projekcie)
-    Const DATA_FIRST As Long = 9      ' pierwszy wiersz danych
-    Const FIRST_COL  As Long = 7      ' G
-    Const LAST_COL   As Long = 47     ' AU
-    Const ID_COL     As Long = 2      ' np. B – kolumna pewna dla koñca danych
+    Const PROTO_ROW        As Long = 8   ' wiersz wzorcowy
+    Const DATA_FIRST       As Long = 9   ' pierwszy wiersz danych
+    Const FMT_FIRST_COL    As Long = 7   ' G -> sk¹d bierzemy formaty/walidacje
+    Const FORMULA_FIRST_COL As Long = 6  ' F -> odtwarzamy formu³y od F do AU
+    Const LAST_COL         As Long = 47  ' AU
+    Const ID_COL           As Long = 2   ' B
+
 
     ' --- zmienne ---
     Dim lastDataRow As Long
@@ -29,22 +31,21 @@ Public Sub RozszerzFormulyLVMega(ByVal wsLV As Worksheet)
     lastDataRow = wsLV.Cells(wsLV.Rows.Count, ID_COL).End(xlUp).Row
     If lastDataRow < DATA_FIRST Then Exit Sub
 
-    ' === (2) FORMATY + WALIDACJE z wiersza 9  ===
-    Set srcProtoFmt = wsLV.Range(wsLV.Cells(DATA_FIRST, FIRST_COL), wsLV.Cells(DATA_FIRST, LAST_COL))
-    Set dstAll = wsLV.Range(wsLV.Cells(DATA_FIRST, FIRST_COL), wsLV.Cells(lastDataRow, LAST_COL))
-
+    ' === (2) FORMATY + WALIDACJE z wiersza 9 ===
+    Set srcProtoFmt = wsLV.Range(wsLV.Cells(DATA_FIRST, FMT_FIRST_COL), wsLV.Cells(DATA_FIRST, LAST_COL))
+    Set dstAll = wsLV.Range(wsLV.Cells(DATA_FIRST, FMT_FIRST_COL), wsLV.Cells(lastDataRow, LAST_COL))
     srcProtoFmt.Copy
     dstAll.PasteSpecial xlPasteFormats
     dstAll.PasteSpecial xlPasteValidation
     Application.CutCopyMode = False
 
-    ' === (3) FORMU£Y – bierzemy wzorzec Z WIERSZA 8, uzupe³niamy tylko PUSTE komórki ===
-    Set rowProto = wsLV.Range(wsLV.Cells(PROTO_ROW, FIRST_COL), wsLV.Cells(PROTO_ROW, LAST_COL))
-
+    ' === (3) FORMU£Y – z PROTO(8), uzupe³niamy tylko PUSTE komórki, od F:AU ===
+    Set rowProto = wsLV.Range(wsLV.Cells(PROTO_ROW, FORMULA_FIRST_COL), wsLV.Cells(PROTO_ROW, LAST_COL))
+    
     On Error Resume Next
     Set srcForm = rowProto.SpecialCells(xlCellTypeFormulas)
     On Error GoTo 0
-
+    
     If Not srcForm Is Nothing Then
         For Each c In srcForm.Cells
             Set rngCol = wsLV.Range(wsLV.Cells(DATA_FIRST, c.Column), wsLV.Cells(lastDataRow, c.Column))
@@ -57,6 +58,20 @@ Public Sub RozszerzFormulyLVMega(ByVal wsLV As Worksheet)
             Set blanks = Nothing
         Next c
     End If
+    
+    ' === (3b) STA£E – dosiej wartoœæ z PROTO do kolumny P (16) tylko w puste komórki ===
+    Dim protoP As Variant
+    protoP = wsLV.Cells(PROTO_ROW, 16).Value  ' w PROTO (wiersz 8) powinna byæ 1
+    
+    If Len(Trim$(CStr(protoP))) > 0 Then
+        Set rngCol = wsLV.Range(wsLV.Cells(DATA_FIRST, 16), wsLV.Cells(lastDataRow, 16))
+        On Error Resume Next
+        Set blanks = rngCol.SpecialCells(xlCellTypeBlanks)
+        On Error GoTo 0
+        If Not blanks Is Nothing Then blanks.Value = protoP
+        Set blanks = Nothing
+    End If
+
 
     ' === (4) cienkie ramki na segmentach danych ===
     NakladanieSegmentowychRamekMega wsLV, DATA_FIRST, lastDataRow
